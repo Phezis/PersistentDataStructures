@@ -3,8 +3,7 @@
 
 #include <iostream>
 
-int main()
-{
-	std::cout << "Hello, world!" << std::endl;
+int main() {
+	PersistentContainer::PersistentVector<int> pvector;
 	return 0;
 }

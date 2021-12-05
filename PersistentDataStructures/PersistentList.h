@@ -21,8 +21,8 @@ namespace PersistentContainer {
         list_const_iterator(const list_const_iterator& other);
         list_const_iterator(list_const_iterator&& other);
 
-        list_const_iterator& opeartor=(const list_const_iterator & other);
-        list_const_iterator& opeartor=(list_const_iterator&& other);
+        list_const_iterator& operator=(const list_const_iterator & other);
+        list_const_iterator& operator=(list_const_iterator&& other);
 
         ~list_const_iterator();
 
@@ -40,7 +40,7 @@ namespace PersistentContainer {
 
     template<typename T>
     class list_iterator : public list_const_iterator<T> {
-        using super = vector_list_const_iterator<T>;
+        using super = vector_const_iterator<T>;
     public:
         using iterator_category = std::bidirectional_iterator_tag;
         using difference_type = std::ptrdiff_t;
@@ -52,8 +52,8 @@ namespace PersistentContainer {
         list_iterator(const list_iterator& other);
         list_iterator(list_iterator&& other);
 
-        list_iterator& opeartor=(const list_iterator & other);
-        list_iterator& opeartor=(list_iterator && other);
+        list_iterator& operator=(const list_iterator & other);
+        list_iterator& operator=(list_iterator && other);
 
         ~list_iterator();
 
@@ -111,12 +111,12 @@ namespace PersistentContainer {
         T& back();
         const T& back() const;
 
-        void push_back(cosnt T& value);
+        void push_back(const T& value);
         // template<class... Args>
         // void emplace_back(Args&&... args);
         void pop_back();
 
-        void push_front(cosnt T& value);
+        void push_front(const T& value);
         // template<class... Args>
         // void emplace_front(Args&&... args);
         void pop_front();
