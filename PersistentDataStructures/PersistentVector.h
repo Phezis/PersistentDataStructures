@@ -8,11 +8,8 @@
 #include <array>
 #include <stdexcept>
 
-const char* getHelloWorld();
-
-auto it = std::vector<int>();
-
-namespace PersistentContainer {
+namespace pds {
+    /*
     template<typename T>
     class vector_const_iterator {
         std::size_t id;
@@ -93,6 +90,7 @@ namespace PersistentContainer {
         friend inline vector_iterator operator+(const difference_type lhs, const vector_iterator& rhs);
         friend inline vector_iterator operator-(const difference_type lhs, const vector_iterator& rhs);
     };
+    */
 
     constexpr std::uint32_t m_primeTreeNodeSize = 5;
 
@@ -111,10 +109,12 @@ namespace PersistentContainer {
         class PrimeVectorTree;
 
 	public:
+        /*
         using iterator = vector_iterator<T>;
         using const_iterator = vector_const_iterator<T>;
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+        */
 
 
         PersistentVector() :
@@ -123,13 +123,14 @@ namespace PersistentContainer {
             m_undoStack(std::stack<version_t>()),
             m_versionTreeNode(m_primeVectorTree->getInitialVersion()) {}
         PersistentVector(const PersistentVector& other) = default;
-        PersistentVector(PersistentVector&& other) = default;
+        PersistentVector(PersistentVector&& other) noexcept = default;
 
         ~PersistentVector() = default;
 
         PersistentVector& operator=(const PersistentVector& other) = default;
         PersistentVector& operator=(PersistentVector&& other) = default;
 
+        /*
         iterator begin();
         iterator end();
         const_iterator cbegin();
@@ -138,22 +139,30 @@ namespace PersistentContainer {
         reverse_iterator rend();
         const_reverse_iterator crbegin();
         const_reverse_iterator crend();
+        */
 
-        T& operator[](std::size_t pos);
         const T& operator[](std::size_t pos) const;
 
+        const T& at(std::size_t pos) const;
+
+        PersistentVector set(std::size_t pos, const T& value);
+
+        /*
 		bool operator==(const PersistentVector& other) const;
 		bool operator!=(const PersistentVector& other) const;
 
 		void swap(PersistentVector& other);
+        */
 
 		std::size_t size() const;
 		bool empty() const;
 
-        void undo();
-        void redo();
+        /*
+        PersistentVector undo();
+        PersistentVector redo();
 
-        void clear();
+        PersistentVector clear();
+        */
 
         T& front();
         const T& front() const;
@@ -161,17 +170,28 @@ namespace PersistentContainer {
         T& back();
         const T& back() const;
 
-        void push_back(const T& value);
+        PersistentVector push_back(const T& value);
 
+        /*
         template<class... Args>
-        void emplace_back(Args&&... args);
-        void pop_back();
-        void resize(std::size_t count);
-
-        T& at(std::size_t pos);
-        const T& at(std::size_t pos) const;
+        PersistentVector emplace_back(Args&&... args) const;
+        PersistentVector pop_back() const;
+        PersistentVector resize(std::size_t count) const;
+        */
 
     private:
+        PersistentVector(std::shared_ptr<PrimeVectorTree> primeVectorTree, version_t version, VectorVersionTreeNode* m_versionTreeNode) :
+            m_primeVectorTree(primeVectorTree),
+            m_version(version),
+            m_undoStack(std::stack<version_t>()),
+            m_versionTreeNode(m_versionTreeNode) {}
+
+
+        using NodeCreationStatus = bool;
+        static constexpr NodeCreationStatus NODE_DUPLICATE = true;
+        static constexpr NodeCreationStatus NEW_NODE = false;
+
+
         /*
         *
         *   PrimeTreeNode - узел первичного дерева, которое эмулирует вектор;
@@ -183,8 +203,9 @@ namespace PersistentContainer {
         class PrimeTreeNode {
         public:
             PrimeTreeNode() = delete;
-            PrimeTreeNode(std::shared_ptr<T> insertingElement);
-            PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>> child);
+            PrimeTreeNode(std::shared_ptr<T>& insertingElement);
+            PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& child);
+            PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& oldChild, std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& newChild);
             PrimeTreeNode(const PrimeTreeNode& other) = default;
             PrimeTreeNode(PrimeTreeNode&& other) = delete;
 
@@ -194,6 +215,8 @@ namespace PersistentContainer {
             ~PrimeTreeNode() = default;
 
             T& get(std::size_t pos, std::uint32_t level);
+
+            NodeCreationStatus emplace_back(std::shared_ptr<T>&& value, std::shared_ptr<PrimeTreeNode>& primeTreeNode);
 
         private:
             static constexpr std::size_t ARRAY_SIZE = Utils::binPow(degreeOfTwo);
@@ -235,10 +258,14 @@ namespace PersistentContainer {
             PrimeTreeRoot& operator=(const PrimeTreeRoot& other) = delete;
             PrimeTreeRoot& operator=(PrimeTreeRoot&& other) = delete;
 
+            ~PrimeTreeRoot() = default;
+
             T& operator[](std::size_t pos);
             const T& operator[](std::size_t pos) const;
 
-            ~PrimeTreeRoot() = default;
+            std::shared_ptr<PrimeTreeRoot> emplace_back(std::shared_ptr<T>&& value);
+
+            std::size_t size() const;
 
         private:
             std::shared_ptr<PrimeTreeNode<degreeOfTwo>> m_child;
@@ -261,11 +288,11 @@ namespace PersistentContainer {
             VectorVersionTreeNode(const VectorVersionTreeNode& other) = delete;
             VectorVersionTreeNode(VectorVersionTreeNode&& other) = default;
             VectorVersionTreeNode(std::unique_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> root, const VectorVersionTreeNode* parent, version_t version) :
-                m_root(root),
+                m_root(std::move(root)),
                 m_parent(parent),
                 m_version(version),
                 m_children(std::vector<VectorVersionTreeNode>()) {}
-            VectorVersionTreeNode(const PrimeTreeRoot<m_primeTreeNodeSize>* root, version_t version) : VectorVersionTreeNode(root, nullptr, version) {}
+            VectorVersionTreeNode(std::unique_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> root, version_t version) : VectorVersionTreeNode(std::move(root), nullptr, version) {}
 
             VectorVersionTreeNode& operator=(const VectorVersionTreeNode& other) = delete;
             VectorVersionTreeNode& operator=(VectorVersionTreeNode&& other) = delete;
@@ -273,20 +300,20 @@ namespace PersistentContainer {
             ~VectorVersionTreeNode() = default;
 
             const PrimeTreeRoot<m_primeTreeNodeSize>& getRoot() const {
-                return *root;
+                return *m_root;
             }
 
             const VectorVersionTreeNode& getParent() const {
-                return *parent;
+                return *m_parent;
             }
 
             version_t getVersion() const {
-                return version;
+                return m_version;
             }
 
-            VectorVersionTreeNode& addChild(const PrimeTreeRoot<m_primeTreeNodeSize>* root, version_t childVersion) {
-                children.emplace_back(root, this, childVersion);
-                return children.back();
+            VectorVersionTreeNode& addChild(std::shared_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> root, version_t childVersion) {
+                m_children.emplace_back(root, this, childVersion);
+                return m_children.back();
             }
 
         private:
@@ -307,10 +334,10 @@ namespace PersistentContainer {
         public:
             VectorVersionTree() = delete;
             VectorVersionTree(std::unique_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> root) {
-                head = VectorVersionTreeNode(root, nullptr, 0);
+                m_head = std::make_unique<VectorVersionTreeNode>(std::move(root), nullptr, 0);
             }
             VectorVersionTree(const VectorVersionTree& other) = delete;
-            VectorVersionTree(VectorVersionTree&& other) = delete;
+            VectorVersionTree(VectorVersionTree&& other) = default;
 
             VectorVersionTree& operator=(const VectorVersionTree& other) = delete;
             VectorVersionTree& operator=(VectorVersionTree&& other) = delete;
@@ -318,7 +345,7 @@ namespace PersistentContainer {
             ~VectorVersionTree() = default;
 
             VectorVersionTreeNode* getHead() {
-                return head.get();
+                return m_head.get();
             }
 
         private:
@@ -347,6 +374,8 @@ namespace PersistentContainer {
 
             VectorVersionTreeNode* getInitialVersion() { return m_versionTree.getHead(); }
 
+            version_t getAndIncreaseLastVersion() { return m_lastVersion++; }
+
         private:
             VectorVersionTree m_versionTree;
             version_t m_lastVersion;
@@ -366,7 +395,7 @@ namespace PersistentContainer {
 
     template<typename T>
     inline std::size_t PersistentVector<T>::size() const {
-        return m_versionTreeNode->getRoot().m_size;
+        return m_versionTreeNode->getRoot().size();
     }
 
     template<typename T>
@@ -375,17 +404,13 @@ namespace PersistentContainer {
     }
 
     template<typename T>
-    inline T& PersistentVector<T>::operator[](std::size_t pos) {
-        return m_versionTreeNode->getRoot()[pos];
-    }
-
-    template<typename T>
     inline const T& PersistentVector<T>::operator[](std::size_t pos) const {
         return m_versionTreeNode->getRoot()[pos];
     }
 
+
     template<typename T>
-    inline T& PersistentVector<T>::at(std::size_t pos) {
+    inline const T& PersistentVector<T>::at(std::size_t pos) const {
         if (pos >= size()) {
             throw std::out_of_range();
         }
@@ -393,8 +418,8 @@ namespace PersistentContainer {
     }
 
     template<typename T>
-    inline const T& PersistentVector<T>::at(std::size_t pos) const {
-        return at(pos);
+    inline PersistentVector<T> PersistentVector<T>::set(std::size_t pos, const T& value) {
+        
     }
 
     template<typename T>
@@ -418,14 +443,17 @@ namespace PersistentContainer {
     }
 
     template<typename T>
-    inline void PersistentVector<T>::push_back(const T& value) {
-
+    inline PersistentVector<T> PersistentVector<T>::push_back(const T& value) {
+        auto newRoot = m_versionTreeNode->getRoot().emplace_back(std::move(std::make_shared(value)));
+        // TODO: check if last version has changed delete newRoot and try again
+        auto& newVersionTreeNode = m_versionTreeNode->addChild(newRoot, m_primeVectorTree->getAndIncreaseLastVersion());
+        return newVector(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
     }
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
     inline T& PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::operator[](std::size_t pos) {
-        return m_child->get(pos, depth - 1);
+        return m_child->get(pos, m_depth - 1);
     }
 
     template<typename T>
@@ -434,18 +462,104 @@ namespace PersistentContainer {
         return (*this)[pos];
     }
 
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    inline std::shared_ptr<typename PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>> 
+        PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::emplace_back(std::shared_ptr<T>&& value)
+    {
+        std::shared_ptr<PrimeTreeNode<degreeOfTwo>> child;
+        std::shared_ptr<PrimeTreeNode<degreeOfTwo>> childOfNewRoot;
+        auto childCreationStatus = m_child->emplace_back(value, child);
+        if (childCreationStatus == NEW_NODE) {
+            childOfNewRoot = std::make_shared<PrimeTreeNode<degreeOfTwo>>(m_child, child);
+        }
+        // otherwise childCreationStatus == NODE_DUPLICATE
+        else {
+            childOfNewRoot = child;
+        }
+        return std::make_shared<PrimeTreeRoot<degreeOfTwo>>(childOfNewRoot, m_size + 1);
+    }
+
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    inline std::size_t PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::size() const {
+        return m_size;
+    }
+
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
     inline T& PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::get(std::size_t pos, std::uint32_t level) {
-        auto id = pos >> (level * degreeOfTwo);
-        auto mask = (1 << (degreeOfTwo - 1)) << ((level - 1) * degreeOfTwo);
+        auto id = Utils::getId(pos, level, degreeOfTwo);
+        auto mask = Utils::getMask(pos, level, degreeOfTwo);
         if (m_type == NODE) {
             return m_content.m_children[id]->get(pos & mask, level - 1);
         }
+        // otherwise m_type == LEAF
         else {
             return *(m_content.m_elements[id]);
         }
+    }
+
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    inline typename PersistentVector<T>::NodeCreationStatus PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::emplace_back(
+            std::shared_ptr<T>&& value, 
+            std::shared_ptr<PrimeTreeNode>& primeTreeNode) {
+        PersistentVector<T>::NodeCreationStatus out;
+        if (m_type == LEAF) {
+            if (m_content.m_elements.size() < Utils::binPow(degreeOfTwo)) {
+                primeTreeNode = std::make_shared(*this);
+                primeTreeNode->m_content.m_elements[duplicate.m_content.m_elements.size()] = value;
+                out = NODE_DUPLICATE;
+            }
+            else {
+                primeTreeNode = std::make_shared(value);
+                out = NEW_NODE;
+            }
+        }
+        else {
+            std::shared_ptr<PrimeTreeNode> child;
+            auto childCreationStatus = m_content.m_children.back().emplace_back(value, child);
+            if (childCreationStatus == NODE_DUPLICATE) {
+                primeTreeNode = std::make_shared(*this);
+                primeTreeNode->m_content.m_children.back() = child;
+                out = NODE_DUPLICATE;
+            }
+            else {
+                if (m_content.m_children.size() < Utils::binPow(degreeOfTwo)) {
+                    primeTreeNode = std::make_shared(*this);
+                    primeTreeNode->m_content.m_elements[duplicate.m_content.m_elements.size()] = value;
+                    out = NODE_DUPLICATE;
+                }
+                else {
+                    primeTreeNode = std::make_shared(child);
+                    out = NEW_NODE;
+                }
+            }
+        }
+        return out;
+    }
+
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    inline PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::PrimeTreeNode(std::shared_ptr<T>& insertingElement) : m_type(LEAF) {
+        m_content.m_elements[0] = insertingElement;
+    }
+
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    inline PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& child) : m_type(NODE) {
+        m_content.m_children[0] = child;
+    }
+
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    inline PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& oldChild, std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& newChild) :
+        m_type(NODE) {
+        m_content.m_children[0] = oldChild;
+        m_content.m_children[1] = newChild;
+
     }
 
 }

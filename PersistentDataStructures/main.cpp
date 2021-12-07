@@ -3,7 +3,11 @@
 
 #include <iostream>
 
+using namespace pds;
+using namespace std;
+
 int main() {
-	PersistentContainer::PersistentVector<int> pvector;
+	PersistentVector<int> pvector;
+	cout << pvector.size() << endl;
 	return 0;
 }

@@ -5,8 +5,8 @@
 #include <stack>
 
 
-namespace PersistentContainer {
-
+namespace pds {
+    /*
     template<typename T>
     class list_const_iterator {
         T* ptr;
@@ -127,5 +127,6 @@ namespace PersistentContainer {
         std::stack<version_t> undoStack;
         ListVersionTree* versionTreeNode;
     };
+    */
 
 }
