@@ -11,8 +11,8 @@ namespace pds {
 			return pos >> (level * degreeOfTwo);
 		}
 
-		std::size_t getMask(std::size_t pos, std::uint32_t level, std::uint32_t degreeOfTwo) {
-			return (1 << (degreeOfTwo - 1)) << ((level - 1) * degreeOfTwo);
+		std::size_t getMask(std::uint32_t level, std::uint32_t degreeOfTwo) {
+			return ((1 << static_cast<std::size_t>(degreeOfTwo)) << ((static_cast<std::size_t>(level) - 1) * static_cast<std::size_t>(degreeOfTwo))) - 1;
 		}
 	}
 }

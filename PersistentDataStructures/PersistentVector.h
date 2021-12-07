@@ -5,7 +5,6 @@
 #include <memory>
 #include <vector>
 #include <stack>
-#include <array>
 #include <stdexcept>
 
 namespace pds {
@@ -171,6 +170,7 @@ namespace pds {
         const T& back() const;
 
         PersistentVector push_back(const T& value);
+        PersistentVector push_back(T&& value);
 
         /*
         template<class... Args>
@@ -206,8 +206,8 @@ namespace pds {
             PrimeTreeNode(std::shared_ptr<T>& insertingElement);
             PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& child);
             PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& oldChild, std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& newChild);
-            PrimeTreeNode(const PrimeTreeNode& other) = default;
-            PrimeTreeNode(PrimeTreeNode&& other) = delete;
+            PrimeTreeNode(const PrimeTreeNode& other);
+            PrimeTreeNode(PrimeTreeNode&& other) = default;
 
             PrimeTreeNode& operator=(const PrimeTreeNode& other) = delete;
             PrimeTreeNode& operator=(PrimeTreeNode&& other) = delete;
@@ -224,13 +224,10 @@ namespace pds {
             static constexpr NodeType NODE = true;
             static constexpr NodeType LEAF = false;
 
-            union PrimeTreeNodeContent {
-                std::array<std::shared_ptr<PrimeTreeNode>, ARRAY_SIZE> m_children;
-                std::array<std::shared_ptr<T>, ARRAY_SIZE> m_elements;
-            };
-
             NodeType m_type;
-            PrimeTreeNodeContent m_content;
+            std::unique_ptr<std::vector<std::shared_ptr<PrimeTreeNode>>> m_children;
+            std::unique_ptr<std::vector<std::shared_ptr<T>>> m_values;
+            std::size_t m_contentAmount;
         };
 
 
@@ -247,6 +244,9 @@ namespace pds {
             PrimeTreeRoot() : m_child(nullptr), m_size(0), m_depth(0) {}
             PrimeTreeRoot(std::shared_ptr<PrimeTreeNode<degreeOfTwo>> child, std::size_t size) : m_child(child), m_size(size) {
                 m_depth = 0;
+                if (size) {
+                    --size;
+                }
                 while (size) {
                     ++m_depth;
                     size >>= degreeOfTwo;
@@ -287,19 +287,19 @@ namespace pds {
             VectorVersionTreeNode() = delete;
             VectorVersionTreeNode(const VectorVersionTreeNode& other) = delete;
             VectorVersionTreeNode(VectorVersionTreeNode&& other) = default;
-            VectorVersionTreeNode(std::unique_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> root, const VectorVersionTreeNode* parent, version_t version) :
+            VectorVersionTreeNode(std::shared_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> root, const VectorVersionTreeNode* parent, version_t version) :
                 m_root(std::move(root)),
                 m_parent(parent),
                 m_version(version),
                 m_children(std::vector<VectorVersionTreeNode>()) {}
-            VectorVersionTreeNode(std::unique_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> root, version_t version) : VectorVersionTreeNode(std::move(root), nullptr, version) {}
+            VectorVersionTreeNode(std::shared_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> root, version_t version) : VectorVersionTreeNode(std::move(root), nullptr, version) {}
 
             VectorVersionTreeNode& operator=(const VectorVersionTreeNode& other) = delete;
             VectorVersionTreeNode& operator=(VectorVersionTreeNode&& other) = delete;
 
             ~VectorVersionTreeNode() = default;
 
-            const PrimeTreeRoot<m_primeTreeNodeSize>& getRoot() const {
+            PrimeTreeRoot<m_primeTreeNodeSize>& getRoot() {
                 return *m_root;
             }
 
@@ -317,7 +317,7 @@ namespace pds {
             }
 
         private:
-            std::unique_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> m_root;
+            std::shared_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> m_root;
             const VectorVersionTreeNode* m_parent;
             const version_t m_version;
             std::vector<VectorVersionTreeNode> m_children;
@@ -444,10 +444,15 @@ namespace pds {
 
     template<typename T>
     inline PersistentVector<T> PersistentVector<T>::push_back(const T& value) {
-        auto newRoot = m_versionTreeNode->getRoot().emplace_back(std::move(std::make_shared(value)));
+        return push_back(std::move(T(value)));
+    }
+
+    template<typename T>
+    inline PersistentVector<T> PersistentVector<T>::push_back(T&& value) {
+        auto newRoot = m_versionTreeNode->getRoot().emplace_back(std::move(std::make_shared<T>(value)));
         // TODO: check if last version has changed delete newRoot and try again
         auto& newVersionTreeNode = m_versionTreeNode->addChild(newRoot, m_primeVectorTree->getAndIncreaseLastVersion());
-        return newVector(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
+        return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode.getVersion(), &newVersionTreeNode);
     }
 
     template<typename T>
@@ -464,18 +469,22 @@ namespace pds {
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
-    inline std::shared_ptr<typename PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>> 
-        PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::emplace_back(std::shared_ptr<T>&& value)
+    std::shared_ptr<typename PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>> PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::emplace_back(std::shared_ptr<T>&& value)
     {
         std::shared_ptr<PrimeTreeNode<degreeOfTwo>> child;
         std::shared_ptr<PrimeTreeNode<degreeOfTwo>> childOfNewRoot;
-        auto childCreationStatus = m_child->emplace_back(value, child);
-        if (childCreationStatus == NEW_NODE) {
-            childOfNewRoot = std::make_shared<PrimeTreeNode<degreeOfTwo>>(m_child, child);
+        if (nullptr == m_child.get()) {
+            childOfNewRoot = std::make_shared<PrimeTreeNode<degreeOfTwo>>(std::move(value));
         }
-        // otherwise childCreationStatus == NODE_DUPLICATE
         else {
-            childOfNewRoot = child;
+            auto childCreationStatus = m_child->emplace_back(std::move(value), child);
+            if (childCreationStatus == NEW_NODE) {
+                childOfNewRoot = std::make_shared<PrimeTreeNode<degreeOfTwo>>(m_child, child);
+            }
+            // otherwise childCreationStatus == NODE_DUPLICATE
+            else {
+                childOfNewRoot = child;
+            }
         }
         return std::make_shared<PrimeTreeRoot<degreeOfTwo>>(childOfNewRoot, m_size + 1);
     }
@@ -486,18 +495,17 @@ namespace pds {
         return m_size;
     }
 
-
     template<typename T>
     template<std::uint32_t degreeOfTwo>
     inline T& PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::get(std::size_t pos, std::uint32_t level) {
-        auto id = Utils::getId(pos, level, degreeOfTwo);
-        auto mask = Utils::getMask(pos, level, degreeOfTwo);
         if (m_type == NODE) {
-            return m_content.m_children[id]->get(pos & mask, level - 1);
+            auto id = Utils::getId(pos, level, degreeOfTwo);
+            auto mask = Utils::getMask(level, degreeOfTwo);
+            return (*m_children)[id]->get(pos & mask, level - 1);
         }
         // otherwise m_type == LEAF
         else {
-            return *(m_content.m_elements[id]);
+            return *((*m_values)[pos]);
         }
     }
 
@@ -508,32 +516,35 @@ namespace pds {
             std::shared_ptr<PrimeTreeNode>& primeTreeNode) {
         PersistentVector<T>::NodeCreationStatus out;
         if (m_type == LEAF) {
-            if (m_content.m_elements.size() < Utils::binPow(degreeOfTwo)) {
-                primeTreeNode = std::make_shared(*this);
-                primeTreeNode->m_content.m_elements[duplicate.m_content.m_elements.size()] = value;
+            if (m_contentAmount < Utils::binPow(degreeOfTwo)) {
+                auto this_copy = *this;
+                primeTreeNode = std::make_shared<PrimeTreeNode>(std::move(this_copy));
+                (*(primeTreeNode->m_values))[primeTreeNode->m_contentAmount] = value;
+                ++primeTreeNode->m_contentAmount;
                 out = NODE_DUPLICATE;
             }
             else {
-                primeTreeNode = std::make_shared(value);
+                primeTreeNode = std::make_shared<PrimeTreeNode>(std::move(value));
                 out = NEW_NODE;
             }
         }
         else {
             std::shared_ptr<PrimeTreeNode> child;
-            auto childCreationStatus = m_content.m_children.back().emplace_back(value, child);
+            auto childCreationStatus = (*m_children)[m_contentAmount - 1]->emplace_back(std::move(value), child);
             if (childCreationStatus == NODE_DUPLICATE) {
-                primeTreeNode = std::make_shared(*this);
-                primeTreeNode->m_content.m_children.back() = child;
+                primeTreeNode = std::make_shared<PrimeTreeNode>(*this);
+                (*primeTreeNode->m_children)[primeTreeNode->m_contentAmount - 1] = child;
                 out = NODE_DUPLICATE;
             }
             else {
-                if (m_content.m_children.size() < Utils::binPow(degreeOfTwo)) {
-                    primeTreeNode = std::make_shared(*this);
-                    primeTreeNode->m_content.m_elements[duplicate.m_content.m_elements.size()] = value;
+                if (m_contentAmount < Utils::binPow(degreeOfTwo)) {
+                    primeTreeNode = std::make_shared<PrimeTreeNode>(*this);
+                    (*(primeTreeNode->m_children))[primeTreeNode->m_contentAmount] = std::move(child);
+                    ++primeTreeNode->m_contentAmount;
                     out = NODE_DUPLICATE;
                 }
                 else {
-                    primeTreeNode = std::make_shared(child);
+                    primeTreeNode = std::make_shared<PrimeTreeNode>(std::move(child));
                     out = NEW_NODE;
                 }
             }
@@ -544,22 +555,45 @@ namespace pds {
     template<typename T>
     template<std::uint32_t degreeOfTwo>
     inline PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::PrimeTreeNode(std::shared_ptr<T>& insertingElement) : m_type(LEAF) {
-        m_content.m_elements[0] = insertingElement;
+        m_values = std::make_unique<std::vector<std::shared_ptr<T>>>(ARRAY_SIZE);
+        (*m_values)[0] = insertingElement;
+        m_contentAmount = 1;
     }
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
     inline PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& child) : m_type(NODE) {
-        m_content.m_children[0] = child;
+        m_children = std::make_unique<std::vector<std::shared_ptr<PrimeTreeNode>>>(ARRAY_SIZE);
+        (*m_children)[0] = child;
+        m_contentAmount = 1;
     }
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
-    inline PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& oldChild, std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& newChild) :
-        m_type(NODE) {
-        m_content.m_children[0] = oldChild;
-        m_content.m_children[1] = newChild;
+    inline PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& oldChild, std::shared_ptr<PrimeTreeNode<degreeOfTwo>>& newChild)
+        : m_type(NODE)
+    {
+        m_children = std::make_unique<std::vector<std::shared_ptr<PrimeTreeNode>>>(ARRAY_SIZE);
+        (*m_children)[0] = oldChild;
+        (*m_children)[1] = newChild;
+        m_contentAmount = 2;
+    }
 
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    inline PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::PrimeTreeNode(const PrimeTreeNode& other)
+        : m_type(other.m_type)
+    {
+        if (m_type == NODE) {
+            auto children_copy = *(other.m_children);
+            m_children = std::make_unique<std::vector<std::shared_ptr<PrimeTreeNode>>>(std::move(children_copy));
+        }
+        // otherwise m_type = LEAF
+        else {
+            auto values_copy = *(other.m_values);
+            m_values = std::make_unique<std::vector<std::shared_ptr<T>>>(std::move(values_copy));
+        }
+        m_contentAmount = other.m_contentAmount;
     }
 
 }
