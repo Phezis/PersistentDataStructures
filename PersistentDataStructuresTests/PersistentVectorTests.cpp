@@ -128,7 +128,7 @@ namespace {
 
 	TEST(PVectorGetting, Huge) {
 		PersistentVector<size_t> pvector;
-		constexpr size_t size = (1 << 11) + 1;
+		constexpr size_t size = (1 << 13) + 1;
 		for (size_t i = 0; i < size; ++i) {
 			pvector = pvector.push_back(i);
 			for (size_t j = 0; j <= i; ++j) {
