@@ -497,4 +497,38 @@ namespace {
 			PVECTOR_ITERATOR_DIFFERENCE(pvector, crbegin, crend)
 		}
 	}
+
+	TEST(PVectorIterator, Comparation) {
+#define PVECTOR_ITERATOR_COMPARATION(pvector, begin, end)	\
+			const auto begin = pvector.begin();				\
+			const auto end = pvector.end();					\
+			auto it = pvector.begin();						\
+			EXPECT_TRUE(it == begin);						\
+			EXPECT_TRUE(it + 5 == end);						\
+			EXPECT_TRUE(it >= begin);						\
+			EXPECT_TRUE(it + 5 >= end);						\
+			EXPECT_TRUE(it <= begin);						\
+			EXPECT_TRUE(it + 5 <= end);						\
+			it += 2;										\
+			EXPECT_FALSE(it == begin);						\
+			EXPECT_FALSE(it == end);						\
+			EXPECT_TRUE(it != begin);						\
+			EXPECT_TRUE(it != end);							\
+			EXPECT_TRUE(begin < it);						\
+			EXPECT_TRUE(it < end);;							\
+			EXPECT_TRUE(it > begin);						\
+			EXPECT_TRUE(end > it);
+
+
+		PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5 };
+		// const iterator
+		{
+			PVECTOR_ITERATOR_COMPARATION(pvector, cbegin, cend)
+		}
+		// const reversed iterator
+		{
+			PVECTOR_ITERATOR_COMPARATION(pvector, crbegin, crend)
+		}
+	}
+
 }
