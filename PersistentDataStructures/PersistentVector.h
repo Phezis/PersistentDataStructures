@@ -6,8 +6,20 @@
 #include <vector>
 #include <stack>
 #include <stdexcept>
+#include <iterator>
 
 namespace pds {
+    template<typename ...Types>
+    using void_t = void;
+
+    template <class Iter>
+    using Iter_cat = typename std::iterator_traits<Iter>::iterator_category;
+
+    template <class T, class = void>
+    constexpr bool is_iterator = false;
+
+    template <class T>
+    constexpr bool is_iterator<T, void_t<Iter_cat<T>>> = true;
     /*
     template<typename T>
     class vector_const_iterator {
@@ -123,7 +135,9 @@ namespace pds {
         PersistentVector(const PersistentVector& other) = default;
         PersistentVector(PersistentVector&& other) noexcept = default;
 
-        template<class InputIt>
+        PersistentVector(std::size_t count, const T& value);
+
+        template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type = false>
         PersistentVector(InputIt first, InputIt last);
 
         PersistentVector(std::initializer_list<T> init) : PersistentVector(init.begin(), init.end()) {}
@@ -148,7 +162,7 @@ namespace pds {
 
         const T& at(std::size_t pos) const;
 
-        PersistentVector set(std::size_t pos, const T& value);
+        PersistentVector set(std::size_t pos, const T& value) const;
 
         /*
 		bool operator==(const PersistentVector& other) const;
@@ -167,19 +181,15 @@ namespace pds {
         PersistentVector clear();
         */
 
-        T& front();
         const T& front() const;
-
-        T& back();
         const T& back() const;
 
-        PersistentVector push_back(const T& value);
-        PersistentVector push_back(T&& value);
-
-        /*
-        template<class... Args>
-        PersistentVector emplace_back(Args&&... args) const;
+        PersistentVector push_back(const T& value) const;
+        PersistentVector push_back(T&& value) const;
         PersistentVector pop_back() const;
+        /*
+        template<typename... Args>
+        PersistentVector emplace_back(Args&&... args) const;
         PersistentVector resize(std::size_t count) const;
         */
 
@@ -225,6 +235,8 @@ namespace pds {
             T& get(std::size_t pos, std::uint32_t level);
 
             NodeCreationStatus emplace_back(std::shared_ptr<T>&& value, std::shared_ptr<PrimeTreeNode>& primeTreeNode);
+
+            std::shared_ptr<PrimeTreeNode> set(std::size_t pos, std::uint32_t level, std::shared_ptr<T>&& value);
             
             // Set primeTreeNode only if the result is a new node (not node duplicate)
             NodeCreationStatus emplace_back_inplace(std::shared_ptr<T>&& value, std::shared_ptr<PrimeTreeNode>& primeTreeNode);
@@ -266,8 +278,11 @@ namespace pds {
 
             std::shared_ptr<PrimeTreeRoot> emplace_back(std::shared_ptr<T>&& value);
             void emplace_back_inplace(std::shared_ptr<T>&& value);
+            
+            std::shared_ptr<PrimeTreeRoot> set(std::size_t pos, std::shared_ptr<T>&& value);
 
             std::size_t size() const;
+
         private:
             void setSize(std::size_t size);
 
@@ -391,13 +406,11 @@ namespace pds {
     }
 
     template<typename T>
-    inline PersistentVector<T> PersistentVector<T>::set(std::size_t pos, const T& value) {
-        
-    }
-
-    template<typename T>
-    inline T& PersistentVector<T>::front() {
-        return (*this)[0];
+    inline PersistentVector<T> PersistentVector<T>::set(std::size_t pos, const T& value) const {
+        auto newRoot = m_versionTreeNode->getRoot().set(pos, std::move(std::make_shared<T>(value)));
+        // TODO: check if last version has changed delete newRoot and try again
+        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
+        return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
     }
 
     template<typename T>
@@ -406,22 +419,17 @@ namespace pds {
     }
 
     template<typename T>
-    inline T& PersistentVector<T>::back() {
-        return (*this)[size() - 1];
-    }
-
-    template<typename T>
     inline const T& PersistentVector<T>::back() const {
         return (*this)[size() - 1];
     }
 
     template<typename T>
-    inline PersistentVector<T> PersistentVector<T>::push_back(const T& value) {
+    inline PersistentVector<T> PersistentVector<T>::push_back(const T& value) const {
         return push_back(std::move(T(value)));
     }
 
     template<typename T>
-    inline PersistentVector<T> PersistentVector<T>::push_back(T&& value) {
+    inline PersistentVector<T> PersistentVector<T>::push_back(T&& value) const {
         auto newRoot = m_versionTreeNode->getRoot().emplace_back(std::move(std::make_shared<T>(value)));
         // TODO: check if last version has changed delete newRoot and try again
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
@@ -445,7 +453,14 @@ namespace pds {
     }
 
     template<typename T>
-    template<class InputIt>
+    PersistentVector<T>::PersistentVector(std::size_t count, const T& value) : PersistentVector<T>::PersistentVector() {
+        for (size_t i = 0; i < count; ++i) {
+            push_back_inplace(value);
+        }
+    }
+
+    template<typename T>
+    template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type>
     PersistentVector<T>::PersistentVector(InputIt first, InputIt last) : PersistentVector<T>::PersistentVector() {
         for (; first != last; ++first) {
             push_back_inplace(*first);
@@ -463,10 +478,6 @@ namespace pds {
     inline const T& PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::operator[](std::size_t pos) const {
         return (*this)[pos];
     }
-
-    /*template<typename T>
-    template<std::uint32_t degreeOfTwo>
-    std::shared_ptr<typename PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>> PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::emplace_back(std::shared_ptr<T>&& value)*/
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
@@ -513,6 +524,14 @@ namespace pds {
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
+    typename std::shared_ptr<typename PersistentVector<T>::template PrimeTreeRoot<degreeOfTwo>>
+        PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::set(std::size_t pos, std::shared_ptr<T>&& value)
+    {
+        return std::make_shared<PrimeTreeRoot<degreeOfTwo>>(m_child->set(pos, m_depth - 1, std::move(value)), m_size);
+    }
+
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
     void PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::emplace_back_inplace(std::shared_ptr<T>&& value)
     {
         if (nullptr == m_child.get()) {
@@ -546,7 +565,8 @@ namespace pds {
     template<std::uint32_t degreeOfTwo>
     inline typename PersistentVector<T>::NodeCreationStatus PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::emplace_back(
             std::shared_ptr<T>&& value, 
-            std::shared_ptr<PrimeTreeNode>& primeTreeNode) {
+            std::shared_ptr<PrimeTreeNode>& primeTreeNode)
+    {
         PersistentVector<T>::NodeCreationStatus out;
         if (m_type == LEAF) {
             if (m_contentAmount < Utils::binPow(degreeOfTwo)) {
@@ -585,6 +605,28 @@ namespace pds {
         return out;
     }
 
+
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    inline typename std::shared_ptr<typename PersistentVector<T>::template PrimeTreeNode<degreeOfTwo>> PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::set(
+        std::size_t pos,
+        std::uint32_t level,
+        std::shared_ptr<T>&& value)
+    {
+        auto id = Utils::getId(pos, level, degreeOfTwo);
+        auto mask = Utils::getMask(level, degreeOfTwo);
+        std::shared_ptr<PrimeTreeNode<degreeOfTwo>> out;
+        if (m_type == LEAF) {
+            auto this_copy = *this;
+            out = std::make_shared<PrimeTreeNode>(std::move(this_copy));
+            (*(out->m_values))[pos] = std::move(value);
+        }
+        else {
+            out = std::make_shared<PrimeTreeNode>(*this);
+            (*out->m_children)[id] = std::move((*m_children)[id]->set(pos & mask, level - 1, std::move(value)));
+        }
+        return out;
+    }
     
     template<typename T>
     template<std::uint32_t degreeOfTwo>

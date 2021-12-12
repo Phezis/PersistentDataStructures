@@ -134,6 +134,27 @@ namespace {
 	*	Extended creation
 	*/
 
+	TEST(PVectorCertainValueCreation, NoOne) {
+		PersistentVector<size_t> pvector(0, 0);
+		EXPECT_EQ(pvector.size(), 0);
+		EXPECT_TRUE(pvector.empty());
+	}
+
+	TEST(PVectorCertainValueCreation, OnlyOne) {
+		PersistentVector<size_t> pvector(1, 12345);
+		EXPECT_EQ(pvector.size(), 1);
+		EXPECT_EQ(pvector[0], 12345);
+	}
+
+	TEST(PVectorCertainValueCreation, Huge) {
+		constexpr size_t size = (1 << 15) + 1;
+		PersistentVector<size_t> pvector(size, 12345);
+		EXPECT_EQ(pvector.size(), size);
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector[i], 12345);
+		}
+	}
+
 	TEST(PVectorIteratorCreation, NoOne) {
 		std::vector<size_t> srcvector;
 		PersistentVector<size_t> pvector(srcvector.begin(), srcvector.end());
@@ -187,6 +208,43 @@ namespace {
 		PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5 };
 		EXPECT_EQ(pvector.size(), 5);
 		for (size_t i = 0; i < 5; ++i) {
+			EXPECT_EQ(pvector[i], i + 1);
+		}
+	}
+
+
+	/*
+	*	Setting
+	*/
+
+	TEST(PVectorSetting, OnlyOne) {
+		PersistentVector<size_t> srcpvector = { 12345 };
+		auto pvector = srcpvector.set(0, 0);
+		EXPECT_EQ(srcpvector.size(), 1);
+		EXPECT_EQ(pvector.size(), 1);
+		EXPECT_EQ(srcpvector[0], 12345);
+		EXPECT_EQ(pvector[0], 0);
+	}
+
+	TEST(PVectorSetting, Some) {
+		PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5 };
+		for (size_t i = 0; i < pvector.size(); ++i) {
+			pvector = pvector.set(i, i);
+		}
+		EXPECT_EQ(pvector.size(), 5);
+		for (size_t i = 0; i < pvector.size(); ++i) {
+			EXPECT_EQ(pvector[i], i);
+		}
+	}
+
+	TEST(PVectorSetting, Huge) {
+		constexpr size_t size = (1 << 13) + 1;
+		PersistentVector<size_t> pvector(size, 0);
+		for (size_t i = 0; i < pvector.size(); ++i) {
+			pvector = pvector.set(i, i + 1);
+		}
+		EXPECT_EQ(pvector.size(), size);
+		for (size_t i = 0; i < pvector.size(); ++i) {
 			EXPECT_EQ(pvector[i], i + 1);
 		}
 	}
