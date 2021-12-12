@@ -117,7 +117,7 @@ namespace {
 
 	TEST(PVectorGetting, Huge) {
 		PersistentVector<size_t> pvector;
-		constexpr size_t size = (1 << 13) + 1;
+		constexpr size_t size = (1 << 12) + 1;
 		for (size_t i = 0; i < size; ++i) {
 			pvector = pvector.push_back(i);
 			for (size_t j = 0; j <= i; ++j) {
@@ -246,6 +246,255 @@ namespace {
 		EXPECT_EQ(pvector.size(), size);
 		for (size_t i = 0; i < pvector.size(); ++i) {
 			EXPECT_EQ(pvector[i], i + 1);
+		}
+	}
+
+
+	/*
+	*	Iterators
+	*/
+
+
+	TEST(PVectorIterator, Empty) {
+		PersistentVector<size_t> pvector;
+		EXPECT_TRUE(pvector.cbegin() == pvector.cend());
+		EXPECT_TRUE(pvector.crbegin() == pvector.crend());
+	}
+
+	
+	TEST(PVectorIterator, OnlyOne) {
+		PersistentVector<size_t> pvector = { 12345 };
+		// const iterator
+		{
+			EXPECT_TRUE(pvector.cbegin() != pvector.cend());
+			auto it = pvector.cbegin();
+			EXPECT_EQ(*it, 12345);
+			EXPECT_TRUE(++it == pvector.cend());
+		}
+		// const reversed iterator
+		{
+			EXPECT_TRUE(pvector.crbegin() != pvector.crend());
+			auto it = pvector.crbegin();
+			EXPECT_EQ(*it, 12345);
+			EXPECT_TRUE(++it == pvector.crend());
+		}
+	}
+	
+	TEST(PVectorIterator, Some) {
+		PersistentVector<size_t> pvector(10, 12345);
+		// const iterator
+		{
+			EXPECT_TRUE(pvector.cbegin() != pvector.cend());
+			for (auto it = pvector.cbegin(); it != pvector.cend(); ++it) {
+				EXPECT_EQ(*it, 12345);
+			}
+		}
+		// const reversed iterator
+		{
+			EXPECT_TRUE(pvector.crbegin() != pvector.crend());
+			for (auto it = pvector.crbegin(); it != pvector.crend(); ++it) {
+				EXPECT_EQ(*it, 12345);
+			}
+		}
+	}
+
+	TEST(PVectorIterator, Huge) {
+		constexpr size_t size = (1 << 13) + 1;
+		PersistentVector<size_t> pvector(10, 12345);
+		// const iterator
+		{
+			EXPECT_TRUE(pvector.cbegin() != pvector.cend());
+			for (auto it = pvector.cbegin(); it != pvector.cend(); ++it) {
+				EXPECT_EQ(*it, 12345);
+			}
+		}
+		// const reversed iterator
+		{
+			EXPECT_TRUE(pvector.crbegin() != pvector.crend());
+			for (auto it = pvector.crbegin(); it != pvector.crend(); ++it) {
+				EXPECT_EQ(*it, 12345);
+			}
+		}
+	}
+	
+	TEST(PVectorIterator, ChangeAssign) {
+#define PVECTOR_ITERATOR_CHANGE_ASSIGN(pvector, begin, end)	\
+		auto it = pvector.begin();							\
+		EXPECT_EQ(*it, 1);									\
+		it += 0;											\
+		EXPECT_EQ(*it, 1);									\
+		it += 1;											\
+		EXPECT_EQ(*it, 2);									\
+		it += 2;											\
+		EXPECT_EQ(*it, 4);									\
+		it += 3;											\
+		EXPECT_EQ(*it, 7);									\
+		it += 4;											\
+		EXPECT_TRUE(it == pvector.end());					\
+		it -= 1;											\
+		EXPECT_EQ(*it, 10);									\
+		it -= 0;											\
+		EXPECT_EQ(*it, 10);									\
+		it -= 2;											\
+		EXPECT_EQ(*it, 8);									\
+		it -= 3;											\
+		EXPECT_EQ(*it, 5);									\
+		it -= 4;											\
+		EXPECT_EQ(*it, 1);									\
+		EXPECT_TRUE(it == pvector.begin());
+
+		// const iterator
+		{
+			PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+			PVECTOR_ITERATOR_CHANGE_ASSIGN(pvector, cbegin, cend)
+		}
+		// const reversed iterator
+		{
+			PersistentVector<size_t> pvector = { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+			PVECTOR_ITERATOR_CHANGE_ASSIGN(pvector, crbegin, crend)
+		}
+	}
+
+	TEST(PVectorIterator, IncrementAndDecrement) {
+#define PVECTOR_ITERATOR_INCREMENT_AND_DECREMENT(pvector, begin, end)	\
+		auto it = pvector.begin();										\
+		EXPECT_EQ(*it, 1);												\
+		++it;															\
+		EXPECT_EQ(*it, 2);												\
+		it++;															\
+		EXPECT_EQ(*it, 3);												\
+		EXPECT_EQ(*(++it), 4);											\
+		EXPECT_EQ(*(it++), 4);											\
+		EXPECT_EQ(*it, 5);												\
+		EXPECT_EQ(*(it++), 5);											\
+		EXPECT_TRUE(it == pvector.end());								\
+		--it;															\
+		EXPECT_EQ(*it, 5);												\
+		it--;															\
+		EXPECT_EQ(*it, 4);												\
+		EXPECT_EQ(*(--it), 3);											\
+		EXPECT_EQ(*(it--), 3);											\
+		EXPECT_EQ(*it, 2);												\
+		EXPECT_EQ(*(it--), 2);											\
+		EXPECT_TRUE(it == pvector.begin());
+
+
+		// const iterator
+		{
+			PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5 };
+			PVECTOR_ITERATOR_INCREMENT_AND_DECREMENT(pvector, cbegin, cend)
+		}
+		// const reversed iterator
+		{
+			PersistentVector<size_t> pvector = { 5, 4, 3, 2, 1 };
+			PVECTOR_ITERATOR_INCREMENT_AND_DECREMENT(pvector, crbegin, crend)
+		}
+	}
+
+
+	TEST(PVectorIterator, GetById) {
+#define PVECTOR_ITERATOR_GET_BY_ID(pvector, begin)	\
+		auto it = pvector.begin();					\
+		EXPECT_EQ(it[0], 1);						\
+		EXPECT_EQ(it[9], 10);						\
+		it += 4;									\
+		EXPECT_EQ(it[-4], 1);						\
+		EXPECT_EQ(it[0], 5);						\
+		EXPECT_EQ(it[5], 10);						\
+		it += 5;									\
+		EXPECT_EQ(it[-9], 1);						\
+		EXPECT_EQ(it[0], 10);
+
+
+		// const iterator
+		{
+			PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+			PVECTOR_ITERATOR_GET_BY_ID(pvector, cbegin)
+		}
+		// const reversed iterator
+		{
+			PersistentVector<size_t> pvector = { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+			PVECTOR_ITERATOR_GET_BY_ID(pvector, crbegin)
+		}
+	}
+
+	TEST(PVectorIterator, BinaryPlusAndMinus) {
+#define PVECTOR_ITERATOR_BINARY_PLUS_AND_MINUS(pvector, begin, end)	\
+		auto it = pvector.begin();									\
+		EXPECT_EQ(*(it + 0), 1);									\
+		EXPECT_EQ(*(it + 1), 2);									\
+		EXPECT_EQ(*(it + 2), 3);									\
+		EXPECT_EQ(*(it + 5), 6);									\
+		EXPECT_EQ(*(it + 9), 10);									\
+		EXPECT_TRUE(it + 10 == pvector.end());						\
+		it = it + 9;												\
+		EXPECT_EQ(*(it - 0), 10);									\
+		EXPECT_EQ(*(it - 1), 9);									\
+		EXPECT_EQ(*(it - 2), 8);									\
+		EXPECT_EQ(*(it - 5), 5);									\
+		EXPECT_EQ(*(it - 9), 1);									\
+		EXPECT_TRUE(it - 9 == pvector.begin());
+
+
+
+		// const iterator
+		{
+			PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+			PVECTOR_ITERATOR_BINARY_PLUS_AND_MINUS(pvector, cbegin, cend)
+		}
+		// const reversed iterator
+		{
+			PersistentVector<size_t> pvector = { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+			PVECTOR_ITERATOR_BINARY_PLUS_AND_MINUS(pvector, crbegin, crend)
+		}
+	}
+
+	TEST(PVectorIterator, Difference) {
+#define PVECTOR_ITERATOR_DIFFERENCE(pvector, begin, end)	\
+		const auto begin = pvector.begin();					\
+		const auto end = pvector.end();						\
+		auto it = pvector.begin();							\
+		EXPECT_EQ(it - begin, 0);							\
+		EXPECT_EQ(begin - it, 0);							\
+		it += 1;											\
+		EXPECT_EQ(it - begin, 1);							\
+		EXPECT_EQ(begin - it, -1);							\
+		it += 2;											\
+		EXPECT_EQ(it - begin, 3);							\
+		EXPECT_EQ(begin - it, -3);							\
+		it += 5;											\
+		EXPECT_EQ(it - begin, 8);							\
+		EXPECT_EQ(begin - it, -8);							\
+		it += 2;											\
+		EXPECT_EQ(it - begin, 10);							\
+		EXPECT_EQ(begin - it, -10);							\
+		EXPECT_EQ(it - end, 0);								\
+		EXPECT_EQ(end - it, 0);								\
+		it -= 1;											\
+		EXPECT_EQ(it - end, -1);							\
+		EXPECT_EQ(end - it, 1);								\
+		it -= 2;											\
+		EXPECT_EQ(it - end, -3);							\
+		EXPECT_EQ(end - it, 3);								\
+		it -= 5;											\
+		EXPECT_EQ(it - end, -8);							\
+		EXPECT_EQ(end - it, 8);								\
+		it -= 2;											\
+		EXPECT_EQ(it - end, -10);							\
+		EXPECT_EQ(end - it, 10);							\
+		EXPECT_EQ(it - begin, 0);							\
+		EXPECT_EQ(begin - it, 0);
+
+
+		// const iterator
+		{
+			PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+			PVECTOR_ITERATOR_DIFFERENCE(pvector, cbegin, cend)
+		}
+		// const reversed iterator
+		{
+			PersistentVector<size_t> pvector = { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+			PVECTOR_ITERATOR_DIFFERENCE(pvector, crbegin, crend)
 		}
 	}
 }

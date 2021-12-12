@@ -2,6 +2,7 @@
 #include "PersistentList.h"
 
 #include <iostream>
+#include <list>
 
 using namespace pds;
 using namespace std;
@@ -17,8 +18,9 @@ struct S {
 };
 
 int main() {
-	
-	vector<int> v(0, 0);
-	std::cout << "A" << std::endl;
+	list<int> l;
+	vector<int> v(1, 1);
+	cout << (*(v.crbegin()) == 1) << endl;
+	cout << "A" << endl;
 	return 0;
 }

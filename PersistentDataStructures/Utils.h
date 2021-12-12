@@ -2,6 +2,18 @@
 #include <cstddef>
 
 namespace pds {
+	template<typename ...Types>
+	using void_t = void;
+
+	template <class Iter>
+	using Iter_cat = typename std::iterator_traits<Iter>::iterator_category;
+
+	template <class T, class = void>
+	constexpr bool is_iterator = false;
+
+	template <class T>
+	constexpr bool is_iterator<T, void_t<Iter_cat<T>>> = true;
+
 	namespace Utils {
 		constexpr std::size_t binPow(std::uint32_t deg) {
 			return static_cast<std::size_t>(1) << deg;

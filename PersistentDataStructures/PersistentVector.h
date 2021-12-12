@@ -9,53 +9,44 @@
 #include <iterator>
 
 namespace pds {
-    template<typename ...Types>
-    using void_t = void;
+    template<typename T>
+    class PersistentVector;
 
-    template <class Iter>
-    using Iter_cat = typename std::iterator_traits<Iter>::iterator_category;
-
-    template <class T, class = void>
-    constexpr bool is_iterator = false;
-
-    template <class T>
-    constexpr bool is_iterator<T, void_t<Iter_cat<T>>> = true;
-    /*
     template<typename T>
     class vector_const_iterator {
-        std::size_t id;
+        std::size_t m_id;
+        const PersistentVector<T>* m_pvector;
     public:
         using iterator_category = std::random_access_iterator_tag;
         using difference_type = std::ptrdiff_t;
         using value_type = T;
-        using pointer = T*;
-        using reference = T&;
+        using pointer = const T*;
+        using reference = const T&;
 
-        vector_const_iterator();
-        vector_const_iterator(const vector_const_iterator& other);
-        vector_const_iterator(vector_const_iterator&& other);
+        vector_const_iterator() = delete;
+        vector_const_iterator(std::size_t id, const PersistentVector<T>* pvector) : m_id(id), m_pvector(pvector) {}
+        vector_const_iterator(const vector_const_iterator& other) = default;
+        vector_const_iterator(vector_const_iterator&& other) = default;
 
-        vector_const_iterator& operator=(const vector_const_iterator& other);
-        vector_const_iterator& operator=(vector_const_iterator&& other);
+        vector_const_iterator& operator=(const vector_const_iterator& other) = default;
+        vector_const_iterator& operator=(vector_const_iterator&& other) = default;
 
-        ~vector_const_iterator();
+        ~vector_const_iterator() = default;
 
-        inline vector_const_iterator& operator+=(const difference_type other);
-        inline vector_const_iterator& operator-=(const difference_type other);
-        inline T& operator*() const;
-        inline T* operator->() const;
-        inline T& operator[](const difference_type other) const;
+        inline vector_const_iterator& operator+=(const difference_type shift);
+        inline vector_const_iterator& operator-=(const difference_type shift);
+        inline const T& operator*() const;
+        inline const T* operator->() const;
+        inline const T& operator[](const difference_type shift) const;
 
         inline vector_const_iterator& operator++();
         inline vector_const_iterator& operator--();
-        inline vector_const_iterator operator++(int) const;
-        inline vector_const_iterator operator--(int) const;
+        inline vector_const_iterator operator++(int);
+        inline vector_const_iterator operator--(int);
 
         inline difference_type operator-(const vector_const_iterator& other) const;
-        inline vector_const_iterator operator+(const difference_type other) const;
-        inline vector_const_iterator operator-(const difference_type other) const;
-        friend inline vector_const_iterator operator+(const difference_type lhs, const vector_const_iterator& rhs);
-        friend inline vector_const_iterator operator-(const difference_type lhs, const vector_const_iterator& rhs);
+        inline vector_const_iterator operator+(const difference_type shift) const;
+        inline vector_const_iterator operator-(const difference_type shift) const;
 
         inline bool operator==(const vector_const_iterator& other) const;
         inline bool operator!=(const vector_const_iterator& other) const;
@@ -66,42 +57,9 @@ namespace pds {
     };
 
     template<typename T>
-    class vector_iterator : public vector_const_iterator<T> {
-        using super = vector_const_iterator<T>;
-    public:
-        using iterator_category = std::random_access_iterator_tag;
-        using difference_type = std::ptrdiff_t;
-        using value_type = T;
-        using pointer = T*;
-        using reference = T&;
-
-        vector_iterator();
-        vector_iterator(const vector_iterator& other);
-        vector_iterator(vector_iterator&& other);
-
-        vector_iterator& operator=(const vector_iterator & other);
-        vector_iterator& operator=(vector_iterator && other);
-
-        ~vector_iterator();
-
-        inline vector_iterator& operator+=(const difference_type other);
-        inline vector_iterator& operator-=(const difference_type other);
-        inline T& operator*() const;
-        inline T* operator->() const;
-        inline T& operator[](const difference_type other) const;
-
-        inline vector_iterator& operator++();
-        inline vector_iterator& operator--();
-        inline vector_iterator operator++(int) const;
-        inline vector_iterator operator--(int) const;
-
-        inline difference_type operator-(const vector_iterator& other) const;
-        inline vector_iterator operator+(const difference_type other) const;
-        inline vector_iterator operator-(const difference_type other) const;
-        friend inline vector_iterator operator+(const difference_type lhs, const vector_iterator& rhs);
-        friend inline vector_iterator operator-(const difference_type lhs, const vector_iterator& rhs);
-    };
-    */
+    inline vector_const_iterator<T> operator+(const typename vector_const_iterator<T>::difference_type lhs, const vector_const_iterator<T>& rhs);
+    template<typename T>
+    inline vector_const_iterator<T> operator-(const typename vector_const_iterator<T>::difference_type lhs, const vector_const_iterator<T>& rhs);
 
     constexpr std::uint32_t m_primeTreeNodeSize = 5;
 
@@ -120,12 +78,8 @@ namespace pds {
         class PrimeVectorTree;
 
 	public:
-        /*
-        using iterator = vector_iterator<T>;
         using const_iterator = vector_const_iterator<T>;
-        using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-        */
 
 
         PersistentVector() :
@@ -147,16 +101,10 @@ namespace pds {
         PersistentVector& operator=(const PersistentVector& other) = default;
         PersistentVector& operator=(PersistentVector&& other) = default;
 
-        /*
-        iterator begin();
-        iterator end();
-        const_iterator cbegin();
-        const_iterator cend();
-        reverse_iterator rbegin();
-        reverse_iterator rend();
-        const_reverse_iterator crbegin();
-        const_reverse_iterator crend();
-        */
+        const_iterator cbegin() const;
+        const_iterator cend() const;
+        const_reverse_iterator crbegin() const;
+        const_reverse_iterator crend() const;
 
         const T& operator[](std::size_t pos) const;
 
@@ -381,6 +329,148 @@ namespace pds {
     * 
     */
 
+
+    /*
+    * 
+    *   Iterators
+    * 
+    */
+    
+    template<typename T>
+    inline vector_const_iterator<T>& vector_const_iterator<T>::operator+=(const difference_type shift) {
+        m_id += shift;
+        return *this;
+    }
+
+    template<typename T>
+    inline vector_const_iterator<T>& vector_const_iterator<T>::operator-=(const difference_type shift) {
+        m_id -= shift;
+        return *this;
+    }
+
+    template<typename T>
+    inline const T& vector_const_iterator<T>::operator*() const {
+        return (*m_pvector)[m_id];
+    }
+
+    template<typename T>
+    inline const T* vector_const_iterator<T>::operator->() const {
+        return &(*m_pvector)[m_id];
+    }
+
+    template<typename T>
+    inline const T& vector_const_iterator<T>::operator[](const difference_type shift) const {
+        return (*m_pvector)[m_id + shift];
+    }
+
+    template<typename T>
+    inline vector_const_iterator<T>& vector_const_iterator<T>::operator++() {
+        ++m_id;
+        return *this;
+    }
+
+    template<typename T>
+    inline vector_const_iterator<T>& vector_const_iterator<T>::operator--() {
+        --m_id;
+        return *this;
+    }
+
+    template<typename T>
+    inline vector_const_iterator<T> vector_const_iterator<T>::operator++(int) {
+        auto copy = *this;
+        ++m_id;
+        return copy;
+    }
+
+    template<typename T>
+    inline vector_const_iterator<T> vector_const_iterator<T>::operator--(int) {
+        auto copy = *this;
+        --m_id;
+        return copy;
+    }
+
+    template<typename T>
+    inline typename vector_const_iterator<T>::difference_type vector_const_iterator<T>::operator-(const vector_const_iterator& other) const {
+        return static_cast<vector_const_iterator<T>::difference_type>(m_id - other.m_id);
+    }
+
+    template<typename T>
+    inline vector_const_iterator<T> vector_const_iterator<T>::operator+(const difference_type shift) const {
+        auto copy = *this;
+        copy += shift;
+        return copy;
+    }
+
+    template<typename T>
+    inline vector_const_iterator<T> vector_const_iterator<T>::operator-(const difference_type shift) const {
+        auto copy = *this;
+        copy -= shift;
+        return copy;
+    }
+
+
+    template<typename T>
+    inline vector_const_iterator<T> operator+(const typename vector_const_iterator<T>::difference_type lhs, const vector_const_iterator<T>& rhs) {
+        return rhs + lhs;
+    }
+
+    template<typename T>
+    inline vector_const_iterator<T> operator-(const typename vector_const_iterator<T>::difference_type lhs, const vector_const_iterator<T>& rhs) {
+        return rhs - lhs;
+    }
+
+    template<typename T>
+    inline bool vector_const_iterator<T>::operator==(const vector_const_iterator<T>& other) const {
+        return m_id == other.m_id;
+    }
+
+    template<typename T>
+    inline bool vector_const_iterator<T>::operator!=(const vector_const_iterator<T>& other) const {
+        return !(*this == other);
+    }
+
+    template<typename T>
+    inline bool vector_const_iterator<T>::operator<(const vector_const_iterator<T>& other) const {
+        return m_id < other.m_id;
+    }
+
+    template<typename T>
+    inline bool vector_const_iterator<T>::operator>(const vector_const_iterator<T>& other) const {
+        return other < *this;
+    }
+
+    template<typename T>
+    inline bool vector_const_iterator<T>::operator>=(const vector_const_iterator<T>& other) const {
+        return !(*this < other);
+    }
+
+    template<typename T>
+    inline bool vector_const_iterator<T>::operator<=(const vector_const_iterator<T>& other) const {
+        return !(other < *this);
+    }
+
+
+    /*
+    * 
+    *   Persistent vector
+    * 
+    */
+
+    template<typename T>
+    PersistentVector<T>::PersistentVector(std::size_t count, const T& value) : PersistentVector<T>::PersistentVector() {
+        for (size_t i = 0; i < count; ++i) {
+            push_back_inplace(value);
+        }
+    }
+
+    template<typename T>
+    template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type>
+    PersistentVector<T>::PersistentVector(InputIt first, InputIt last) : PersistentVector<T>::PersistentVector() {
+        for (; first != last; ++first) {
+            push_back_inplace(*first);
+        }
+    }
+
     template<typename T>
     inline std::size_t PersistentVector<T>::size() const {
         return m_versionTreeNode->getRoot().size();
@@ -440,7 +530,34 @@ namespace pds {
     inline void PersistentVector<T>::push_back_inplace(const T& value) {
         m_versionTreeNode->getRoot().emplace_back_inplace(std::move(std::make_shared<T>(T(value))));
     }
-    
+
+
+    template<typename T>
+    typename PersistentVector<T>::const_iterator PersistentVector<T>::cbegin() const {
+        return const_iterator(0, this);
+    }
+
+    template<typename T>
+    typename PersistentVector<T>::const_iterator PersistentVector<T>::cend() const {
+        return const_iterator(size(), this);
+    }
+
+    template<typename T>
+    typename PersistentVector<T>::const_reverse_iterator PersistentVector<T>::crbegin() const {
+        return const_reverse_iterator(cend());
+    }
+
+    template<typename T>
+    typename PersistentVector<T>::const_reverse_iterator PersistentVector<T>::crend() const {
+        return const_reverse_iterator(cbegin());
+    }
+
+
+    /*
+    * 
+    *   PrimeTreeRoot
+    * 
+    */
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
@@ -450,21 +567,6 @@ namespace pds {
         m_size(size)
     {
         setSize(size);
-    }
-
-    template<typename T>
-    PersistentVector<T>::PersistentVector(std::size_t count, const T& value) : PersistentVector<T>::PersistentVector() {
-        for (size_t i = 0; i < count; ++i) {
-            push_back_inplace(value);
-        }
-    }
-
-    template<typename T>
-    template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type>
-    PersistentVector<T>::PersistentVector(InputIt first, InputIt last) : PersistentVector<T>::PersistentVector() {
-        for (; first != last; ++first) {
-            push_back_inplace(*first);
-        }
     }
 
     template<typename T>
@@ -546,6 +648,13 @@ namespace pds {
         }
         setSize(size() + 1);
     }
+
+
+    /*
+    * 
+    *   PrimeTreeNode
+    * 
+    */
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
@@ -709,6 +818,13 @@ namespace pds {
         }
         m_contentAmount = other.m_contentAmount;
     }
+
+
+    /*
+    * 
+    *   VectorVersionTreeNode
+    * 
+    */
 
     template<typename T>
     PersistentVector<T>::VectorVersionTreeNode::~VectorVersionTreeNode() {
