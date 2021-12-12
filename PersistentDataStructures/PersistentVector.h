@@ -7,6 +7,7 @@
 #include <stack>
 #include <stdexcept>
 #include <iterator>
+#include <utility>
 
 namespace pds {
     template<typename T>
@@ -112,12 +113,11 @@ namespace pds {
 
         PersistentVector set(std::size_t pos, const T& value) const;
 
-        /*
 		bool operator==(const PersistentVector& other) const;
 		bool operator!=(const PersistentVector& other) const;
 
 		void swap(PersistentVector& other);
-        */
+
 
 		std::size_t size() const;
 		bool empty() const;
@@ -501,6 +501,40 @@ namespace pds {
         // TODO: check if last version has changed delete newRoot and try again
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
         return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
+    }
+
+    template<typename T>
+    bool PersistentVector<T>::operator==(const PersistentVector<T>& other) const {
+        bool out = false;
+        if (m_primeVectorTree == other.m_primeVectorTree
+            && m_versionTreeNode == other.m_versionTreeNode
+            && m_version == other.m_version)
+        {
+            out = true;
+        }
+        else if (size() == other.size()) {
+            out = true;
+            for (auto& it = cbegin(), it1 = other.cbegin(); it != cend() && out == true; ++it, ++it1) {
+                if (*it != *it1) {
+                    out = false;
+                }
+            }
+        }
+        return out;
+    }
+
+    template<typename T>
+    bool PersistentVector<T>::operator!=(const PersistentVector<T>& other) const {
+        return !(*this == other);
+    }
+
+    template<typename T>
+    void PersistentVector<T>::swap(PersistentVector<T>& other) {
+        if (this != &other) {
+            std::swap(m_primeVectorTree, other.m_primeVectorTree);
+            std::swap(m_versionTreeNode, other.m_versionTreeNode);
+            std::swap(m_version, other.m_version);
+        }
     }
 
     template<typename T>

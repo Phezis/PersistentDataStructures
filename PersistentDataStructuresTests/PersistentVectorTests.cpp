@@ -531,4 +531,111 @@ namespace {
 		}
 	}
 
+
+	/*
+	* 
+	*	Comparation
+	* 
+	*/
+
+	TEST(PVectorComparation, Empty) {
+		PersistentVector<size_t> pvector;
+		PersistentVector<size_t> pvector1;
+		PersistentVector<size_t> pvector2 = pvector;
+		EXPECT_TRUE(pvector == pvector);
+		EXPECT_FALSE(pvector != pvector);
+		EXPECT_TRUE(pvector == pvector1);
+		EXPECT_FALSE(pvector != pvector1);
+		EXPECT_TRUE(pvector == pvector2);
+		EXPECT_FALSE(pvector != pvector2);
+	}
+
+	TEST(PVectorComparation, NonEmptyConstructed) {
+		PersistentVector<size_t> pvector = { 1, 2, 3 };
+		PersistentVector<size_t> pvector1 = { 1, 2, 3 };
+		PersistentVector<size_t> pvector2 = pvector;
+		EXPECT_TRUE(pvector == pvector);
+		EXPECT_FALSE(pvector != pvector);
+		EXPECT_TRUE(pvector == pvector1);
+		EXPECT_FALSE(pvector != pvector1);
+		EXPECT_TRUE(pvector == pvector2);
+		EXPECT_FALSE(pvector != pvector2);
+	}
+
+	TEST(PVectorComparation, SameLength) {
+		constexpr size_t size = (1 << 13) + 1;
+		PersistentVector<size_t> pvector(size, 12345);
+		PersistentVector<size_t> pvector1(size, 12345);
+		EXPECT_TRUE(pvector == pvector1);
+		EXPECT_FALSE(pvector != pvector1);
+		auto pvector2 = pvector1.set(size - 1, 54321);
+		EXPECT_TRUE(pvector == pvector1);
+		EXPECT_FALSE(pvector != pvector1);
+		EXPECT_FALSE(pvector == pvector2);
+		EXPECT_TRUE(pvector != pvector2);
+		pvector2 = pvector2.set(size - 1, 12345);
+		EXPECT_TRUE(pvector2 == pvector);
+		EXPECT_FALSE(pvector2 != pvector);
+		EXPECT_TRUE(pvector2 == pvector1);
+		EXPECT_FALSE(pvector2 != pvector1);
+		pvector2 = pvector2.set(size - 5, 54321);
+		EXPECT_FALSE(pvector == pvector2);
+		EXPECT_TRUE(pvector != pvector2);
+		EXPECT_FALSE(pvector1 == pvector2);
+		EXPECT_TRUE(pvector1 != pvector2);
+	}
+
+	TEST(PVectorComparation, DifferentLength) {
+		constexpr size_t size = (1 << 13) + 1;
+		PersistentVector<size_t> pvector(size, 12345);
+		PersistentVector<size_t> pvector1(size - 1, 12345);
+		EXPECT_FALSE(pvector == pvector1);
+		EXPECT_TRUE(pvector != pvector1);
+		auto pvector2 = pvector1.set(size - 2, 54321);
+		EXPECT_FALSE(pvector == pvector1);
+		EXPECT_TRUE(pvector != pvector1);
+		EXPECT_FALSE(pvector1 == pvector2);
+		EXPECT_TRUE(pvector1 != pvector2);
+		pvector2 = pvector2.set(size - 2, 12345);
+		EXPECT_FALSE(pvector == pvector1);
+		EXPECT_TRUE(pvector != pvector1);
+		EXPECT_TRUE(pvector1 == pvector2);
+		EXPECT_FALSE(pvector1 != pvector2);
+	}
+
+
+	/*
+	*
+	*	Swap
+	*
+	*/
+
+	TEST(PVectorSwap, SwapItself) {
+		constexpr size_t size = 1 << 12;
+		PersistentVector<size_t> pvector(size, 12345);
+		pvector.swap(pvector);
+		EXPECT_TRUE(pvector == pvector);
+		std::swap(pvector, pvector);
+		EXPECT_TRUE(pvector == pvector);
+	}
+
+	TEST(PVectorSwap, SwapDifferent) {
+		constexpr size_t size = 1 << 12;
+		PersistentVector<size_t> pvector1(size, 12345);
+		PersistentVector<size_t> pvector2(size, 54321);
+		PersistentVector<size_t> pvector1_copy = pvector1;
+		PersistentVector<size_t> pvector2_copy = pvector2;
+		EXPECT_TRUE(pvector1 != pvector2);
+		EXPECT_TRUE(pvector1 == pvector1_copy);
+		EXPECT_TRUE(pvector2 == pvector2_copy);
+		pvector1.swap(pvector2);
+		EXPECT_TRUE(pvector1 != pvector2);
+		EXPECT_TRUE(pvector2 == pvector1_copy);
+		EXPECT_TRUE(pvector1 == pvector2_copy);
+		std::swap(pvector1, pvector2);
+		EXPECT_TRUE(pvector1 != pvector2);
+		EXPECT_TRUE(pvector1 == pvector1_copy);
+		EXPECT_TRUE(pvector2 == pvector2_copy);
+	}
+
 }
