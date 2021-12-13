@@ -3,7 +3,7 @@
 #include "Utils.h"
 
 #include <memory>
-#include <vector>
+#include <array>
 #include <stack>
 #include <stdexcept>
 #include <iterator>
@@ -135,6 +135,7 @@ namespace pds {
         PersistentVector push_back(const T& value) const;
         PersistentVector push_back(T&& value) const;
         PersistentVector pop_back() const;
+
         /*
         template<typename... Args>
         PersistentVector emplace_back(Args&&... args) const;
@@ -190,13 +191,14 @@ namespace pds {
             NodeCreationStatus emplace_back_inplace(std::shared_ptr<T>&& value, std::shared_ptr<PrimeTreeNode>& primeTreeNode);
 
         private:
+            static constexpr std::size_t ARRAY_SIZE = Utils::binPow(degreeOfTwo);
             using NodeType = bool;
             static constexpr NodeType NODE = true;
             static constexpr NodeType LEAF = false;
 
             NodeType m_type;
-            std::unique_ptr<std::vector<std::shared_ptr<PrimeTreeNode>>> m_children;
-            std::unique_ptr<std::vector<std::shared_ptr<T>>> m_values;
+            std::unique_ptr<std::array<std::shared_ptr<PrimeTreeNode>, ARRAY_SIZE>> m_children;
+            std::unique_ptr<std::array<std::shared_ptr<T>, ARRAY_SIZE>> m_values;
             std::size_t m_contentAmount;
         };
 
@@ -323,11 +325,11 @@ namespace pds {
         version_t m_version;
 	};
 
-    /*
-    *
-    *   Implementation
-    * 
-    */
+/*
+*
+*   Implementation
+* 
+*/
 
 
     /*
@@ -514,7 +516,7 @@ namespace pds {
         }
         else if (size() == other.size()) {
             out = true;
-            for (auto& it = cbegin(), it1 = other.cbegin(); it != cend() && out == true; ++it, ++it1) {
+            for (auto it = cbegin(), it1 = other.cbegin(); it != cend() && out == true; ++it, ++it1) {
                 if (*it != *it1) {
                     out = false;
                 }
@@ -564,7 +566,6 @@ namespace pds {
     inline void PersistentVector<T>::push_back_inplace(const T& value) {
         m_versionTreeNode->getRoot().emplace_back_inplace(std::move(std::make_shared<T>(T(value))));
     }
-
 
     template<typename T>
     typename PersistentVector<T>::const_iterator PersistentVector<T>::cbegin() const {
@@ -807,12 +808,10 @@ namespace pds {
         return out;
     }
 
-#define ARRAY_SIZE(degreeOfTwo) Utils::binPow(degreeOfTwo)
-
     template<typename T>
     template<std::uint32_t degreeOfTwo>
     inline PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::PrimeTreeNode(std::shared_ptr<T> insertingElement) : m_type(LEAF) {
-        m_values = std::make_unique<std::vector<std::shared_ptr<T>>>(ARRAY_SIZE(degreeOfTwo));
+        m_values = std::make_unique<std::array<std::shared_ptr<T>, ARRAY_SIZE>>();
         (*m_values)[0] = insertingElement;
         m_contentAmount = 1;
     }
@@ -820,7 +819,7 @@ namespace pds {
     template<typename T>
     template<std::uint32_t degreeOfTwo>
     inline PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>> child) : m_type(NODE) {
-        m_children = std::make_unique<std::vector<std::shared_ptr<PrimeTreeNode>>>(ARRAY_SIZE(degreeOfTwo));
+        m_children = std::make_unique<std::array<std::shared_ptr<PrimeTreeNode>, ARRAY_SIZE>>();
         (*m_children)[0] = child;
         m_contentAmount = 1;
     }
@@ -830,7 +829,7 @@ namespace pds {
     inline PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::PrimeTreeNode(std::shared_ptr<PrimeTreeNode<degreeOfTwo>> oldChild, std::shared_ptr<PrimeTreeNode<degreeOfTwo>> newChild)
         : m_type(NODE)
     {
-        m_children = std::make_unique<std::vector<std::shared_ptr<PrimeTreeNode>>>(ARRAY_SIZE(degreeOfTwo));
+        m_children = std::make_unique<std::array<std::shared_ptr<PrimeTreeNode>, ARRAY_SIZE>>();
         (*m_children)[0] = oldChild;
         (*m_children)[1] = newChild;
         m_contentAmount = 2;
@@ -843,12 +842,12 @@ namespace pds {
     {
         if (m_type == NODE) {
             auto children_copy = *(other.m_children);
-            m_children = std::make_unique<std::vector<std::shared_ptr<PrimeTreeNode>>>(std::move(children_copy));
+            m_children = std::make_unique<std::array<std::shared_ptr<PrimeTreeNode>, ARRAY_SIZE>>(std::move(children_copy));
         }
         // otherwise m_type = LEAF
         else {
             auto values_copy = *(other.m_values);
-            m_values = std::make_unique<std::vector<std::shared_ptr<T>>>(std::move(values_copy));
+            m_values = std::make_unique<std::array<std::shared_ptr<T>, ARRAY_SIZE>>(std::move(values_copy));
         }
         m_contentAmount = other.m_contentAmount;
     }
