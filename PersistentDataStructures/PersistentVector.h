@@ -130,8 +130,8 @@ namespace pds {
         PersistentVector undo();
         PersistentVector redo();
 
-        PersistentVector clear();
         */
+        PersistentVector clear() const;
 
         const T& front() const;
         const T& back() const;
@@ -613,6 +613,11 @@ namespace pds {
         // TODO: check if last version has changed delete newRoot and try again
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
         return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
+    }
+
+    template<typename T>
+    inline PersistentVector<T> PersistentVector<T>::clear() const {
+        return resize(0);
     }
 
     template<typename T>

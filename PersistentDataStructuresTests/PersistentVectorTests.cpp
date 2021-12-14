@@ -961,4 +961,39 @@ namespace {
 			EXPECT_EQ(pvector1[i], 1);
 		}
 	}
+
+
+	/*
+	*	Clear
+	*/
+
+	TEST(PVectorClear, Empty) {
+		PersistentVector<size_t> pvector;
+		EXPECT_TRUE(pvector.empty());
+		auto pvector1 = pvector.resize(0);
+		EXPECT_TRUE(pvector.empty());
+		EXPECT_TRUE(pvector1.empty());
+	}
+
+	TEST(PVectorClear, One) {
+		PersistentVector<size_t> pvector = { 0 };
+		auto pvector1 = pvector.resize(0);
+		EXPECT_EQ(pvector.size(), 1);
+		EXPECT_TRUE(pvector1.empty());
+	}
+
+	TEST(PVectorClear, Some) {
+		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
+		auto pvector1 = pvector.resize(0);
+		EXPECT_EQ(pvector.size(), 6);
+		EXPECT_TRUE(pvector1.empty());
+	}
+
+	TEST(PVectorClear, Huge) {
+		constexpr size_t size = 1 << 13;
+		PersistentVector<size_t> pvector(size, 0);
+		auto pvector1 = pvector.resize(0);
+		EXPECT_EQ(pvector.size(), size);
+		EXPECT_TRUE(pvector1.empty());
+	}
 }
