@@ -119,6 +119,9 @@ namespace pds {
 
 		void swap(PersistentVector& other);
 
+        PersistentVector resize(std::size_t size) const;
+        PersistentVector resize(std::size_t size, const T& value) const;
+
 
 		std::size_t size() const;
 		bool empty() const;
@@ -140,7 +143,6 @@ namespace pds {
         /*
         template<typename... Args>
         PersistentVector emplace_back(Args&&... args) const;
-        PersistentVector resize(std::size_t count) const;
         */
 
     private:
@@ -189,13 +191,17 @@ namespace pds {
 
             T& get(std::size_t pos, std::uint32_t level);
 
-            NodeCreationStatus emplace_back(std::shared_ptr<T>&& value, std::shared_ptr<PrimeTreeNode>& primeTreeNode);
+            NodeCreationStatus emplace_back(std::shared_ptr<T>&& value, std::shared_ptr<PrimeTreeNode>& primeTreeNode) const;
 
-            std::shared_ptr<PrimeTreeNode> pop_back();
+            std::shared_ptr<PrimeTreeNode> pop_back() const;
+
+            std::shared_ptr<PrimeTreeNode> reduce_size(std::size_t pos, std::uint32_t level) const;
 
             std::shared_ptr<PrimeTreeNode> set(std::size_t pos, std::uint32_t level, std::shared_ptr<T>&& value);
 
             std::shared_ptr<PrimeTreeNode> getFirstChild() const;
+
+            std::shared_ptr<PrimeTreeNode> getFirstNodeWithSomeChildren() const;
             
             // Set primeTreeNode only if the result is a new node (not node duplicate)
             NodeCreationStatus emplace_back_inplace(std::shared_ptr<T>&& value, std::shared_ptr<PrimeTreeNode>& primeTreeNode);
@@ -241,7 +247,10 @@ namespace pds {
             void emplace_back_inplace(std::shared_ptr<T>&& value);
 
             std::shared_ptr<PrimeTreeRoot> pop_back() const;
-            void pop_back_inplace();
+
+            // Size have to be different with the current size
+            std::shared_ptr<PrimeTreeRoot> resize(std::size_t size) const;
+            std::shared_ptr<PrimeTreeRoot> resize(std::size_t size, const T& value) const;
             
             std::shared_ptr<PrimeTreeRoot> set(std::size_t pos, std::shared_ptr<T>&& value);
 
@@ -583,6 +592,28 @@ namespace pds {
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
         return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
     }
+    
+    template<typename T>
+    inline PersistentVector<T> PersistentVector<T>::resize(std::size_t size) const {
+        if (size == this->size()) {
+            return PersistentVector<T>(*this);
+        }
+        auto newRoot = m_versionTreeNode->getRoot().resize(size);
+        // TODO: check if last version has changed delete newRoot and try again
+        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
+        return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
+    }
+
+    template<typename T>
+    inline PersistentVector<T> PersistentVector<T>::resize(std::size_t size, const T& value) const {
+        if (size == this->size()) {
+            return PersistentVector<T>(*this);
+        }
+        auto newRoot = m_versionTreeNode->getRoot().resize(size, value);
+        // TODO: check if last version has changed delete newRoot and try again
+        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
+        return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
+    }
 
     template<typename T>
     inline void PersistentVector<T>::push_back_inplace(const T& value) {
@@ -697,10 +728,6 @@ namespace pds {
         return std::make_shared<PrimeTreeRoot<degreeOfTwo>>(childOfNewRoot, m_size - 1);
     }
 
-    void pop_back_inplace() {
-
-    }
-
     template<typename T>
     template<std::uint32_t degreeOfTwo>
     void PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::emplace_back_inplace(std::shared_ptr<T>&& value)
@@ -724,6 +751,51 @@ namespace pds {
         PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::set(std::size_t pos, std::shared_ptr<T>&& value)
     {
         return std::make_shared<PrimeTreeRoot<degreeOfTwo>>(m_child->set(pos, m_depth - 1, std::move(value)), m_size);
+    }
+    
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    typename std::shared_ptr<typename PersistentVector<T>::template PrimeTreeRoot<degreeOfTwo>>
+        PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::resize(std::size_t size) const
+    {
+        std::shared_ptr<PrimeTreeRoot<degreeOfTwo>> out;
+        if (size < m_size) {
+            auto child = m_child->reduce_size(size, m_depth - 1);
+            if (child != nullptr && child->type() == PrimeTreeNode<degreeOfTwo>::NODE && child->size() == 1) {
+                child = child->getFirstNodeWithSomeChildren();
+            }
+            out = std::make_shared<PrimeTreeRoot<degreeOfTwo>>(std::move(child), size);
+            
+        }
+        else {
+            out = std::make_shared<PrimeTreeRoot<degreeOfTwo>>(m_child, m_size);
+            for (auto i = m_size; i < size; ++i) {
+                out->emplace_back_inplace(std::make_shared<T>(std::move(T())));
+            }
+        }
+        return out;
+    }
+
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    typename std::shared_ptr<typename PersistentVector<T>::template PrimeTreeRoot<degreeOfTwo>>
+        PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::resize(std::size_t size, const T& value) const
+    {
+        std::shared_ptr<PrimeTreeRoot<degreeOfTwo>> out;
+        if (size < m_size) {
+            auto child = m_child->reduce_size(size, m_depth - 1);
+            if (child != nullptr && child->type() == PrimeTreeNode<degreeOfTwo>::NODE && child->size() == 1) {
+                child = child->getFirstNodeWithSomeChildren();
+            }
+            out = std::make_shared<PrimeTreeRoot<degreeOfTwo>>(std::move(child), size);
+        }
+        else {
+            out = std::make_shared<PrimeTreeRoot<degreeOfTwo>>(m_child, m_size);
+            for (auto i = m_size; i < size; ++i) {
+                out->emplace_back_inplace(std::make_shared<T>(std::move(T(value))));
+            }
+        }
+        return out;
     }
 
 
@@ -751,7 +823,7 @@ namespace pds {
     template<std::uint32_t degreeOfTwo>
     inline typename PersistentVector<T>::NodeCreationStatus PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::emplace_back(
             std::shared_ptr<T>&& value, 
-            std::shared_ptr<PrimeTreeNode>& primeTreeNode)
+            std::shared_ptr<PrimeTreeNode>& primeTreeNode) const
     {
         PersistentVector<T>::NodeCreationStatus out;
         if (m_type == LEAF) {
@@ -793,7 +865,9 @@ namespace pds {
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
-    inline typename std::shared_ptr<typename PersistentVector<T>::template PrimeTreeNode<degreeOfTwo>> PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::pop_back() {
+    inline typename std::shared_ptr<typename PersistentVector<T>::template PrimeTreeNode<degreeOfTwo>> 
+        PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::pop_back() const
+    {
         std::shared_ptr<PrimeTreeNode> out;
         if (m_type == LEAF) {
             if (m_contentAmount > 1) {
@@ -816,6 +890,52 @@ namespace pds {
                     out = std::make_shared<PrimeTreeNode>(*this);
                     --out->m_contentAmount;
                     (*(out->m_children))[out->m_contentAmount].reset();
+                }
+                else {
+                    out = nullptr;
+                }
+            }
+        }
+        return out;
+    }
+
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    inline typename std::shared_ptr<typename PersistentVector<T>::template PrimeTreeNode<degreeOfTwo>> 
+        PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::reduce_size(std::size_t pos, std::uint32_t level) const
+    {
+        std::shared_ptr<PrimeTreeNode<degreeOfTwo>> out;
+        if (m_type == LEAF) {
+            if (!pos) {
+                out = nullptr;
+            }
+            else {
+                out = std::make_shared<PrimeTreeNode>(m_values->front());
+                for (std::size_t i = 1; i < pos; ++i) {
+                    (*(out->m_values))[i] = (*m_values)[i];
+                }
+                out->m_contentAmount = pos;
+            }
+        }
+        else {
+            auto id = Utils::getId(pos, level, degreeOfTwo);
+            auto mask = Utils::getMask(level, degreeOfTwo);
+            auto child = (*m_children)[id]->reduce_size(pos & mask, level - 1);
+            if (nullptr != child) {
+                out = std::make_shared<PrimeTreeNode>(m_children->front());
+                for (std::size_t i = 1; i < id; ++i) {
+                    (*(out->m_children))[i] = (*m_children)[i];
+                }
+                (*(out->m_children))[id] = child;
+                out->m_contentAmount = id + 1;
+            }
+            else {
+                if (id > 0) {
+                    out = std::make_shared<PrimeTreeNode>(m_children->front());
+                    for (std::size_t i = 1; i < id; ++i) {
+                        (*(out->m_children))[i] = (*m_children)[i];
+                    }
+                    out->m_contentAmount = id;
                 }
                 else {
                     out = nullptr;
@@ -852,6 +972,22 @@ namespace pds {
     template<std::uint32_t degreeOfTwo>
     inline typename std::shared_ptr<typename PersistentVector<T>::template PrimeTreeNode<degreeOfTwo>> PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::getFirstChild() const {
         return (*m_children)[0];
+    }
+
+    template<typename T>
+    template<std::uint32_t degreeOfTwo>
+    inline typename std::shared_ptr<typename PersistentVector<T>::template PrimeTreeNode<degreeOfTwo>> PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::getFirstNodeWithSomeChildren() const {
+        std::shared_ptr<PrimeTreeNode<degreeOfTwo>> out;
+        if ((*m_children)[0]->type() == LEAF) {
+            out = m_children->front();
+        }
+        else if ((*m_children)[0]->size() > 1) {
+            out = (*m_children)[0];
+        }
+        else {
+            out = (*m_children)[0]->getFirstNodeWithSomeChildren();
+        }
+        return out;
     }
     
     template<typename T>

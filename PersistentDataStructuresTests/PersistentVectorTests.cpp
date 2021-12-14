@@ -740,4 +740,225 @@ namespace {
 		EXPECT_TRUE(pvector3 == pvector);
 	}
 
+
+	/*
+	*	Resize
+	*/
+
+	TEST(PVectorResize, EmptyToEmpty) {
+		PersistentVector<size_t> pvector;
+		EXPECT_TRUE(pvector.empty());
+		auto pvector1 = pvector.resize(0);
+		EXPECT_TRUE(pvector.empty());
+		EXPECT_TRUE(pvector1.empty());
+	}
+
+	TEST(PVectorResize, EmptyToOne) {
+		PersistentVector<size_t> pvector;
+		EXPECT_TRUE(pvector.empty());
+		auto pvector1 = pvector.resize(1, 1);
+		EXPECT_TRUE(pvector.empty());
+		EXPECT_EQ(pvector1.size(), 1);
+		EXPECT_EQ(pvector1[0], 1);
+	}
+
+	TEST(PVectorResize, EmptyToSome) {
+		constexpr size_t size = 10;
+		PersistentVector<size_t> pvector;
+		EXPECT_TRUE(pvector.empty());
+		auto pvector1 = pvector.resize(size, 12345);
+		EXPECT_TRUE(pvector.empty());
+		EXPECT_EQ(pvector1.size(), size);
+		for (auto it = pvector1.cbegin(); it != pvector1.cend(); ++it) {
+			EXPECT_EQ(*it, 12345);
+		}
+	}
+
+	TEST(PVectorResize, EmptyToHuge) {
+		constexpr size_t size = 1 << 13;
+		PersistentVector<size_t> pvector;
+		EXPECT_TRUE(pvector.empty());
+		auto pvector1 = pvector.resize(size, 12345);
+		EXPECT_TRUE(pvector.empty());
+		EXPECT_EQ(pvector1.size(), size);
+		for (auto it = pvector1.cbegin(); it != pvector1.cend(); ++it) {
+			EXPECT_EQ(*it, 12345);
+		}
+	}
+
+	TEST(PVectorResize, OneToEmpty) {
+		PersistentVector<size_t> pvector = { 0 };
+		auto pvector1 = pvector.resize(0);
+		EXPECT_EQ(pvector.size(), 1);
+		EXPECT_TRUE(pvector1.empty());
+	}
+
+	TEST(PVectorResize, OneToOne) {
+		PersistentVector<size_t> pvector = { 0 };
+		auto pvector1 = pvector.resize(1, 1);
+		EXPECT_EQ(pvector.size(), 1);
+		EXPECT_EQ(pvector1.size(), 1);
+		EXPECT_EQ(pvector1[0], 0);
+	}
+
+	TEST(PVectorResize, OneToSome) {
+		PersistentVector<size_t> pvector = { 0 };
+		constexpr size_t size = 10;
+		auto pvector1 = pvector.resize(size, 12345);
+		EXPECT_EQ(pvector.size(), 1);
+		EXPECT_EQ(pvector1.size(), size);
+		EXPECT_EQ(pvector1.size(), size);
+		EXPECT_EQ(pvector1[0], 0);
+		for (auto it = pvector1.cbegin() + 1; it != pvector1.cend(); ++it) {
+			EXPECT_EQ(*it, 12345);
+		}
+	}
+
+	TEST(PVectorResize, OneToHuge) {
+		PersistentVector<size_t> pvector = { 0 };
+		constexpr size_t size = 1 << 13;
+		auto pvector1 = pvector.resize(size, 12345);
+		EXPECT_EQ(pvector.size(), 1);
+		EXPECT_EQ(pvector1.size(), size);
+		EXPECT_EQ(pvector1.size(), size);
+		EXPECT_EQ(pvector1[0], 0);
+		for (auto it = pvector1.cbegin() + 1; it != pvector1.cend(); ++it) {
+			EXPECT_EQ(*it, 12345);
+		}
+	}
+
+	TEST(PVectorResize, SomeToEmpty) {
+		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
+		auto pvector1 = pvector.resize(0);
+		EXPECT_EQ(pvector.size(), 6);
+		EXPECT_TRUE(pvector1.empty());
+	}
+
+	TEST(PVectorResize, SomeToOne) {
+		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
+		auto pvector1 = pvector.resize(1, 1);
+		EXPECT_EQ(pvector.size(), 6);
+		EXPECT_EQ(pvector1.size(), 1);
+		EXPECT_EQ(pvector1[0], 0);
+	}
+
+	TEST(PVectorResize, SomeToSomeLess) {
+		constexpr size_t size = 4;
+		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
+		auto pvector1 = pvector.resize(size, 1);
+		EXPECT_EQ(pvector.size(), 6);
+		EXPECT_EQ(pvector1.size(), size);
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector1[i], i);
+		}
+	}
+
+	TEST(PVectorResize, SomeToSomeEq) {
+		constexpr size_t size = 6;
+		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
+		auto pvector1 = pvector.resize(size, 1);
+		EXPECT_EQ(pvector.size(), 6);
+		EXPECT_EQ(pvector1.size(), size);
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector1[i], i);
+		}
+		EXPECT_EQ(pvector, pvector1);
+	}
+
+	TEST(PVectorResize, SomeToSomeBigger) {
+		constexpr size_t size = 10;
+		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
+		auto pvector1 = pvector.resize(size, 12345);
+		EXPECT_EQ(pvector.size(), 6);
+		EXPECT_EQ(pvector1.size(), size);
+		for (size_t i = 0; i < 6; ++i) {
+			EXPECT_EQ(pvector1[i], i);
+		}
+		for (size_t i = 6; i < size; ++i) {
+			EXPECT_EQ(pvector1[i], 12345);
+		}
+	}
+
+	TEST(PVectorResize, SomeToHuge) {
+		constexpr size_t size = 1 << 13;
+		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
+		auto pvector1 = pvector.resize(size, 12345);
+		EXPECT_EQ(pvector.size(), 6);
+		EXPECT_EQ(pvector1.size(), size);
+		for (size_t i = 0; i < 6; ++i) {
+			EXPECT_EQ(pvector1[i], i);
+		}
+		for (size_t i = 6; i < size; ++i) {
+			EXPECT_EQ(pvector1[i], 12345);
+		}
+	}
+
+	TEST(PVectorResize, HugeToEmpty) {
+		constexpr size_t size = 1 << 13;
+		PersistentVector<size_t> pvector(size, 0);
+		auto pvector1 = pvector.resize(0);
+		EXPECT_EQ(pvector.size(), size);
+		EXPECT_TRUE(pvector1.empty());
+	}
+
+	TEST(PVectorResize, HugeToOne) {
+		constexpr size_t size = 1 << 13;
+		PersistentVector<size_t> pvector(size, 0);
+		auto pvector1 = pvector.resize(1, 1);
+		EXPECT_EQ(pvector.size(), size);
+		EXPECT_EQ(pvector1.size(), 1);
+		EXPECT_EQ(pvector1[0], 0);
+	}
+
+	TEST(PVectorResize, HugeToSome) {
+		constexpr size_t size = 1 << 13;
+		constexpr size_t size1 = 4;
+		PersistentVector<size_t> pvector(size, 0);
+		auto pvector1 = pvector.resize(size1, 1);
+		EXPECT_EQ(pvector.size(), size);
+		EXPECT_EQ(pvector1.size(), size1);
+		for (size_t i = 0; i < size1; ++i) {
+			EXPECT_EQ(pvector1[i], 0);
+		}
+	}
+
+	TEST(PVectorResize, HugeToHugeLess) {
+		constexpr size_t size = 1 << 13;
+		constexpr size_t size1 = 1 << 12;
+		PersistentVector<size_t> pvector(size, 0);
+		auto pvector1 = pvector.resize(size1, 1);
+		EXPECT_EQ(pvector.size(), size);
+		EXPECT_EQ(pvector1.size(), size1);
+		for (size_t i = 0; i < size1; ++i) {
+			EXPECT_EQ(pvector1[i], 0);
+		}
+	}
+
+	TEST(PVectorResize, HugeToHugeEq) {
+		constexpr size_t size = 1 << 13;
+		constexpr size_t size1 = 1 << 13;
+		PersistentVector<size_t> pvector(size, 0);
+		auto pvector1 = pvector.resize(size1, 1);
+		EXPECT_EQ(pvector.size(), size);
+		EXPECT_EQ(pvector1.size(), size1);
+		for (size_t i = 0; i < size1; ++i) {
+			EXPECT_EQ(pvector1[i], 0);
+		}
+		EXPECT_EQ(pvector, pvector1);
+	}
+
+	TEST(PVectorResize, HugeToHugeBigger) {
+		constexpr size_t size = 1 << 13;
+		constexpr size_t size1 = 1 << 14;
+		PersistentVector<size_t> pvector(size, 0);
+		auto pvector1 = pvector.resize(size1, 1);
+		EXPECT_EQ(pvector.size(), size);
+		EXPECT_EQ(pvector1.size(), size1);
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector1[i], 0);
+		}
+		for (size_t i = size; i < size1; ++i) {
+			EXPECT_EQ(pvector1[i], 1);
+		}
+	}
 }
