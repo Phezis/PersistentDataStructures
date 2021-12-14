@@ -638,4 +638,106 @@ namespace {
 		EXPECT_TRUE(pvector2 == pvector2_copy);
 	}
 
+
+
+	/*
+	*	Popping
+	*/
+
+	TEST(PVectorPopping, onlyOneElement) {
+		PersistentVector<size_t> pvector;
+		pvector = pvector.push_back(0);
+		auto pvector1 = pvector.pop_back();
+		EXPECT_EQ(pvector[0], 0);
+		EXPECT_TRUE(pvector1.empty());
+	}
+
+	TEST(PVectorPopping, SomeElementsInARow) {
+		PersistentVector<size_t> pvector;
+		constexpr size_t size = 6;
+		for (size_t i = 0; i < size; ++i) {
+			pvector = pvector.push_back(i);
+			EXPECT_EQ(pvector[0], i);
+			EXPECT_EQ(pvector.size(), 1);
+			pvector = pvector.pop_back();
+			EXPECT_TRUE(pvector.empty());
+		}
+	}
+
+	TEST(PVectorPopping, onlyOneLeaf) {
+		constexpr size_t size = (1 << 5);
+		std::vector<size_t> vector;
+		for (size_t i = 0; i < size; ++i) {
+			vector.push_back(i);
+		}
+		PersistentVector<size_t> pvector(vector.begin(), vector.end());
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector.size(), size - i);
+			EXPECT_EQ(pvector[size - i - 1], size - i - 1);
+			pvector = pvector.pop_back();
+			EXPECT_EQ(pvector.size(), size - i - 1);
+		}
+		EXPECT_TRUE(pvector.empty());
+	}
+
+	TEST(PVectorPopping, TwoLeafs) {
+		constexpr size_t size = (1 << 5) + 1;
+		std::vector<size_t> vector;
+		for (size_t i = 0; i < size; ++i) {
+			vector.push_back(i);
+		}
+		PersistentVector<size_t> pvector(vector.begin(), vector.end());
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector.size(), size - i);
+			EXPECT_EQ(pvector[size - i - 1], size - i - 1);
+			pvector = pvector.pop_back();
+			EXPECT_EQ(pvector.size(), size - i - 1);
+		}
+		EXPECT_TRUE(pvector.empty());
+	}
+
+	TEST(PVectorPopping, TwoLelves) {
+		constexpr size_t size = (1 << 10) + 1;
+		std::vector<size_t> vector;
+		for (size_t i = 0; i < size; ++i) {
+			vector.push_back(i);
+		}
+		PersistentVector<size_t> pvector(vector.begin(), vector.end());
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector.size(), size - i);
+			EXPECT_EQ(pvector[size - i - 1], size - i - 1);
+			pvector = pvector.pop_back();
+			EXPECT_EQ(pvector.size(), size - i - 1);
+		}
+		EXPECT_TRUE(pvector.empty());
+	}
+
+	TEST(PVectorPopping, Huge) {
+		constexpr size_t size = (1 << 13) + 1;
+		std::vector<size_t> vector;
+		for (size_t i = 0; i < size; ++i) {
+			vector.push_back(i);
+		}
+		PersistentVector<size_t> pvector(vector.begin(), vector.end());
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector.size(), size - i);
+			EXPECT_EQ(pvector[size - i - 1], size - i - 1);
+			pvector = pvector.pop_back();
+			EXPECT_EQ(pvector.size(), size - i - 1);
+		}
+		EXPECT_TRUE(pvector.empty());
+	}
+
+	TEST(PVectorPopping, BranchingVersioning) {
+		PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5 };
+		auto pvector1 = pvector.pop_back();
+		auto pvector2 = pvector.push_back(6);
+		auto pvector3 = pvector2.pop_back();
+		PersistentVector<size_t> pvector4 = { 1, 2, 3, 4 };
+		PersistentVector<size_t> pvector5 = { 1, 2, 3, 4, 5, 6 };
+		EXPECT_TRUE(pvector1 == pvector4);
+		EXPECT_TRUE(pvector2 == pvector5);
+		EXPECT_TRUE(pvector3 == pvector);
+	}
+
 }
