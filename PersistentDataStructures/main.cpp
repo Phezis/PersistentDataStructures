@@ -20,6 +20,7 @@ struct S {
 int main() {
 	list<int> l;
 	vector<int> v(1, 1);
+	v.emplace_back(1);
 	cout << (*(v.crbegin()) == 1) << endl;
 	cout << "A" << endl;
 	return 0;

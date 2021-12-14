@@ -140,10 +140,8 @@ namespace pds {
         PersistentVector push_back(T&& value) const;
         PersistentVector pop_back() const;
 
-        /*
         template<typename... Args>
         PersistentVector emplace_back(Args&&... args) const;
-        */
 
     private:
         PersistentVector(std::shared_ptr<PrimeVectorTree> primeVectorTree, 
@@ -588,6 +586,15 @@ namespace pds {
     template<typename T>
     inline PersistentVector<T> PersistentVector<T>::pop_back() const {
         auto newRoot = m_versionTreeNode->getRoot().pop_back();
+        // TODO: check if last version has changed delete newRoot and try again
+        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
+        return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
+    }
+
+    template<typename T>
+    template<typename ...Args>
+    inline PersistentVector<T> PersistentVector<T>::emplace_back(Args && ...args) const {
+        auto newRoot = m_versionTreeNode->getRoot().emplace_back(std::move(std::make_shared<T, Args...>(args...)));
         // TODO: check if last version has changed delete newRoot and try again
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
         return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);

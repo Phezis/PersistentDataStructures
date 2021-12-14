@@ -57,7 +57,34 @@ namespace {
 		PersistentVector<size_t> pvector;
 		constexpr size_t size = ((1 << 5) << 5) + 1;
 		for (size_t i = 0; i < size; ++i) {
-			pvector = pvector.push_back(i);
+			pvector = pvector.emplace_back(i);
+			EXPECT_EQ(pvector.size(), i + 1);
+		}
+	}
+
+	TEST(PVectorInserting, emplace_back_onlyOneLeaf) {
+		PersistentVector<size_t> pvector;
+		constexpr size_t size = (1 << 5);
+		for (size_t i = 0; i < size; ++i) {
+			pvector = pvector.emplace_back(i);
+			EXPECT_EQ(pvector.size(), i + 1);
+		}
+	}
+
+	TEST(PVectorInserting, emplace_back_twoLeafs) {
+		PersistentVector<size_t> pvector;
+		constexpr size_t size = 2 * (1 << 5);
+		for (size_t i = 0; i < size; ++i) {
+			pvector = pvector.emplace_back(i);
+			EXPECT_EQ(pvector.size(), i + 1);
+		}
+	}
+
+	TEST(PVectorInserting, emplace_back_twoLevels) {
+		PersistentVector<size_t> pvector;
+		constexpr size_t size = ((1 << 5) << 5) + 1;
+		for (size_t i = 0; i < size; ++i) {
+			pvector = pvector.emplace_back(i);
 			EXPECT_EQ(pvector.size(), i + 1);
 		}
 	}
