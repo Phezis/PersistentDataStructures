@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <iterator>
 #include <utility>
+#include <atomic>
 
 namespace pds {
     template<typename T>
@@ -126,11 +127,12 @@ namespace pds {
 		std::size_t size() const;
 		bool empty() const;
 
-        /*
-        PersistentVector undo();
-        PersistentVector redo();
+        bool canUndo() const;
+        bool canRedo() const;
 
-        */
+        PersistentVector undo() const;
+        PersistentVector redo() const;
+
         PersistentVector clear() const;
 
         const T& front() const;
@@ -152,7 +154,6 @@ namespace pds {
               m_version(version) {}
 
         void push_back_inplace(const T& value);
-
 
         using NodeCreationStatus = bool;
         static constexpr NodeCreationStatus NODE_DUPLICATE = true;
@@ -283,12 +284,14 @@ namespace pds {
                 m_root(std::move(root)),
                 m_parent(parent),
                 m_redoChild(nullptr),
+                m_myOrig(nullptr),
                 m_version(version) {}
-            VectorVersionTreeNode(const VectorVersionTreeNode& other, std::shared_ptr<VectorVersionTreeNode> redoChild) : 
-                m_root(other.m_root),
-                m_parent(other.m_parent),
+            VectorVersionTreeNode(std::shared_ptr<VectorVersionTreeNode> other, std::shared_ptr<VectorVersionTreeNode> redoChild) :
+                m_root(other->m_root),
+                m_parent(other->m_parent),
                 m_redoChild(redoChild),
-                m_version(other.m_version) {}
+                m_myOrig(other),
+                m_version(other->m_version) {}
             VectorVersionTreeNode(std::shared_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> root, version_t version)
                 : VectorVersionTreeNode(std::move(root), nullptr, version) {}
 
@@ -299,8 +302,16 @@ namespace pds {
 
             PrimeTreeRoot<m_primeTreeNodeSize>& getRoot() { return *m_root; }
 
-            std::shared_ptr<VectorVersionTreeNode> getParent(std::shared_ptr<VectorVersionTreeNode> redoChild) const {
-                return std::make_shared(m_parent, redoChild);
+            std::shared_ptr<VectorVersionTreeNode> getParent() const {
+                return m_parent;
+            }
+
+            std::shared_ptr<VectorVersionTreeNode> getRedoChild() const {
+                return m_redoChild;
+            }
+
+            std::shared_ptr<VectorVersionTreeNode> getOrig() const {
+                return m_myOrig;
             }
 
             version_t getVersion() const { return m_version; }
@@ -308,7 +319,8 @@ namespace pds {
         private:
             std::shared_ptr<PrimeTreeRoot<m_primeTreeNodeSize>> m_root;
             std::shared_ptr<VectorVersionTreeNode> m_parent;
-            const std::shared_ptr<VectorVersionTreeNode> m_redoChild;
+            std::shared_ptr<VectorVersionTreeNode> m_redoChild;
+            std::shared_ptr<VectorVersionTreeNode> m_myOrig;
             const version_t m_version;
         };
 
@@ -338,7 +350,7 @@ namespace pds {
 
         private:
             const std::shared_ptr<VectorVersionTreeNode> m_head;
-            version_t m_lastVersion;
+            std::atomic<version_t> m_lastVersion;
         };
 
         std::shared_ptr<PrimeVectorTree> m_primeVectorTree;
@@ -505,6 +517,28 @@ namespace pds {
     }
 
     template<typename T>
+    inline bool PersistentVector<T>::canUndo() const {
+        return nullptr != m_versionTreeNode->getParent();
+    }
+
+    template<typename T>
+    inline bool PersistentVector<T>::canRedo() const {
+        return nullptr != m_versionTreeNode->getRedoChild();
+    }
+
+    template<typename T>
+    inline PersistentVector<T> PersistentVector<T>::undo() const {
+        auto newVersion = std::make_shared<VectorVersionTreeNode>(m_versionTreeNode->getParent(), m_versionTreeNode);
+        return PersistentVector(m_primeVectorTree, newVersion->getVersion(), newVersion);
+    }
+
+    template<typename T>
+    inline PersistentVector<T> PersistentVector<T>::redo() const {
+        auto redoChild = m_versionTreeNode->getRedoChild();
+        return PersistentVector(m_primeVectorTree, redoChild->getVersion(), redoChild);
+    }
+
+    template<typename T>
     inline const T& PersistentVector<T>::operator[](std::size_t pos) const {
         return m_versionTreeNode->getRoot()[pos];
     }
@@ -520,9 +554,10 @@ namespace pds {
 
     template<typename T>
     inline PersistentVector<T> PersistentVector<T>::set(std::size_t pos, const T& value) const {
-        auto newRoot = m_versionTreeNode->getRoot().set(pos, std::move(std::make_shared<T>(value)));
         // TODO: check if last version has changed delete newRoot and try again
-        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
+        auto newRoot = m_versionTreeNode->getRoot().set(pos, std::move(std::make_shared<T>(value)));
+        auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
+        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode, m_primeVectorTree->getNextVersion());
         return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
     }
 
@@ -579,7 +614,8 @@ namespace pds {
     inline PersistentVector<T> PersistentVector<T>::push_back(T&& value) const {
         auto newRoot = m_versionTreeNode->getRoot().emplace_back(std::move(std::make_shared<T>(value)));
         // TODO: check if last version has changed delete newRoot and try again
-        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
+        auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
+        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode, m_primeVectorTree->getNextVersion());
         return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
     }
 
@@ -587,7 +623,8 @@ namespace pds {
     inline PersistentVector<T> PersistentVector<T>::pop_back() const {
         auto newRoot = m_versionTreeNode->getRoot().pop_back();
         // TODO: check if last version has changed delete newRoot and try again
-        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
+        auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
+        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode, m_primeVectorTree->getNextVersion());
         return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
     }
 
@@ -596,7 +633,8 @@ namespace pds {
     inline PersistentVector<T> PersistentVector<T>::emplace_back(Args && ...args) const {
         auto newRoot = m_versionTreeNode->getRoot().emplace_back(std::move(std::make_shared<T, Args...>(args...)));
         // TODO: check if last version has changed delete newRoot and try again
-        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
+        auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
+        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode, m_primeVectorTree->getNextVersion());
         return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
     }
     
@@ -607,7 +645,8 @@ namespace pds {
         }
         auto newRoot = m_versionTreeNode->getRoot().resize(size);
         // TODO: check if last version has changed delete newRoot and try again
-        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
+        auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
+        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode, m_primeVectorTree->getNextVersion());
         return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
     }
 
@@ -616,9 +655,10 @@ namespace pds {
         if (size == this->size()) {
             return PersistentVector<T>(*this);
         }
-        auto newRoot = m_versionTreeNode->getRoot().resize(size, value);
         // TODO: check if last version has changed delete newRoot and try again
-        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, m_versionTreeNode, m_primeVectorTree->getNextVersion());
+        auto newRoot = m_versionTreeNode->getRoot().resize(size, value);
+        auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
+        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode, m_primeVectorTree->getNextVersion());
         return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode->getVersion(), newVersionTreeNode);
     }
 
@@ -1105,6 +1145,26 @@ namespace pds {
     PersistentVector<T>::VectorVersionTreeNode::~VectorVersionTreeNode() {
         std::stack<std::shared_ptr<VectorVersionTreeNode>> uniqueLinkedParents;
         bool stop = false;
+        if (nullptr != m_redoChild) {
+            auto currentChild = m_redoChild;
+            while (!stop) {
+                if (currentChild.use_count() == 2) {
+                    currentChild->m_myOrig.reset();
+                    uniqueLinkedParents.push(currentChild);
+                    currentChild = currentChild->m_redoChild;
+                }
+                else {
+                    stop = true;
+                }
+            }
+            if (!uniqueLinkedParents.empty()) {
+                uniqueLinkedParents.pop();
+            }
+            while (!uniqueLinkedParents.empty()) {
+                uniqueLinkedParents.top()->m_redoChild.reset();
+                uniqueLinkedParents.pop();
+            }
+        }
         auto currentParent = m_parent;
         while (!stop) {
             if (currentParent.use_count() == 2) {

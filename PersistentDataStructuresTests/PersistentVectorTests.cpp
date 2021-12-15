@@ -1023,4 +1023,154 @@ namespace {
 		EXPECT_EQ(pvector.size(), size);
 		EXPECT_TRUE(pvector1.empty());
 	}
+
+
+	/*
+	*	UNDO & REDO
+	*/
+
+	TEST(PVectorUndoRedo, linear) {
+		PersistentVector<size_t> pvector;
+		constexpr size_t size = (1 << 5);
+		for (size_t i = 0; i < size; ++i) {
+			pvector = pvector.push_back(i);
+		}
+		auto pvector1 = pvector;
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector1.size(), size - i);
+			EXPECT_EQ(pvector1.back(), size - i - 1);
+			pvector1 = pvector1.undo();
+			EXPECT_EQ(pvector1.size(), size - i - 1);
+		}
+		EXPECT_TRUE(pvector1.empty());
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector1.size(), i);
+			pvector1 = pvector1.redo();
+			EXPECT_EQ(pvector1.back(), i);
+			EXPECT_EQ(pvector1.size(), i + 1);
+		}
+	}
+
+	TEST(PVectorUndoRedo, linearHuge) {
+		PersistentVector<size_t> pvector;
+		constexpr size_t size = (1 << 13);
+		for (size_t i = 0; i < size; ++i) {
+			pvector = pvector.push_back(i);
+		}
+		auto pvector1 = pvector;
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector1.size(), size - i);
+			EXPECT_EQ(pvector1.back(), size - i - 1);
+			pvector1 = pvector1.undo();
+			EXPECT_EQ(pvector1.size(), size - i - 1);
+		}
+		EXPECT_TRUE(pvector1.empty());
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector1.size(), i);
+			pvector1 = pvector1.redo();
+			EXPECT_EQ(pvector1.back(), i);
+			EXPECT_EQ(pvector1.size(), i + 1);
+		}
+		EXPECT_EQ(pvector, pvector1);
+	}
+
+	TEST(PVectorUndoRedo, linearHugeDestruction) {
+		PersistentVector<size_t> pvector;
+		constexpr size_t size = (1 << 13);
+		for (size_t i = 0; i < size; ++i) {
+			pvector = pvector.push_back(i);
+		}
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector.size(), size - i);
+			EXPECT_EQ(pvector.back(), size - i - 1);
+			pvector = pvector.undo();
+			EXPECT_EQ(pvector.size(), size - i - 1);
+		}
+		pvector = pvector.push_back(0);
+	}
+
+	TEST(PVectorUndoRedo, LinearWithUndoRedo) {
+		PersistentVector<size_t> pvector;
+		constexpr size_t size = (1 << 5);
+		for (size_t i = 0; i < size; ++i) {
+			pvector = pvector.push_back(i);
+			pvector = pvector.undo();
+			EXPECT_EQ(pvector.size(), i);
+			EXPECT_TRUE(pvector.empty() || pvector.back() == i - 1);
+			pvector = pvector.redo();
+			EXPECT_EQ(pvector.size(), i + 1);
+			EXPECT_EQ(pvector.back(), i);
+		}
+	}
+
+	TEST(PVectorUndoRedo, NotLinearWithUndoRedo) {
+		PersistentVector<size_t> pvector;
+		constexpr size_t size = (1 << 13);
+		for (size_t i = 0; i < size; i += 2) {
+			pvector = pvector.push_back(i);
+			pvector = pvector.push_back(i * 2);
+			pvector = pvector.undo();
+			pvector = pvector.push_back(i + 1);
+			pvector = pvector.undo();
+			pvector = pvector.redo();
+			EXPECT_EQ(pvector.back(), i + 1);
+		}
+		EXPECT_EQ(pvector.size(), size);
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector[i], i);
+		}
+	}
+
+	TEST(PVectorUndoRedo, NotLinearWithUndoRedoTwo) {
+		PersistentVector<size_t> pvector;
+		constexpr size_t size = (1 << 13);
+		for (size_t i = 0; i < size; i += 2) {
+			pvector = pvector.push_back(i);
+			pvector = pvector.push_back(i * 2);
+			pvector = pvector.push_back(i * 3);
+			pvector = pvector.undo();
+			pvector = pvector.undo();
+			pvector = pvector.push_back(i + 1);
+			pvector = pvector.undo();
+			pvector = pvector.redo();
+			EXPECT_EQ(pvector.back(), i + 1);
+		}
+		EXPECT_EQ(pvector.size(), size);
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pvector[i], i);
+		}
+	}
+
+	/*
+	*	canUndo & canRedo
+	*/
+
+	TEST(PVectorCanUndoRedo, NewCreated) {
+		PersistentVector<size_t> pvector;
+		EXPECT_FALSE(pvector.canUndo());
+		EXPECT_FALSE(pvector.canRedo());
+	}
+
+	TEST(PVectorCanUndoRedo, CanUndoCantRedo) {
+		PersistentVector<size_t> pvector;
+		pvector = pvector.push_back(0);
+		EXPECT_TRUE(pvector.canUndo());
+		EXPECT_FALSE(pvector.canRedo());
+	}
+
+	TEST(PVectorCanUndoRedo, CantUndoCanRedo) {
+		PersistentVector<size_t> pvector;
+		pvector = pvector.push_back(0);
+		pvector = pvector.undo();
+		EXPECT_FALSE(pvector.canUndo());
+		EXPECT_TRUE(pvector.canRedo());
+	}
+
+	TEST(PVectorCanUndoRedo, CanUndoCanRedo) {
+		PersistentVector<size_t> pvector;
+		pvector = pvector.push_back(0).push_back(1);
+		pvector = pvector.undo();
+		EXPECT_TRUE(pvector.canUndo());
+		EXPECT_TRUE(pvector.canRedo());
+	}
 }
