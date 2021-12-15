@@ -1,13 +1,7 @@
 ﻿cmake_minimum_required (VERSION 3.8)
 
-set(SOURCE_EXE main.cpp)
+set(HEADER_LIB "PersistentVector.h")
 
-set(SOURCE_LIB PersistentDataStructures.cpp)
+add_library(PersistDataStructs INTERFACE ${HEADER_LIB})
 
-set(HEADER_LIB PersistentDataStructures.h)
-
-add_library(PersistentDataStructures STATIC ${SOURCE_LIB})
-
-add_executable (main ${SOURCE_EXE} ${HEADER_LIB})
-
-target_link_libraries(main PersistentDataStructures)
+add_executable(main main.cpp)
