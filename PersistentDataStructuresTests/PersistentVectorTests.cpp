@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include <PersistentVector.h>
+#include <thread>
+#include <chrono>
 
 
 namespace {
@@ -1173,4 +1175,88 @@ namespace {
 		EXPECT_TRUE(pvector.canUndo());
 		EXPECT_TRUE(pvector.canRedo());
 	}
+
+
+
+	/*
+	*	Concurrency
+	*/
+
+	namespace {
+		void PushBackFunc(PersistentVector<size_t>& pvector) {
+			auto id = std::hash<std::thread::id>{}(std::this_thread::get_id());
+			auto myPvector = pvector.push_back(id);
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			myPvector = myPvector.push_back(id + 1);
+			for (size_t i = 0; i < 5; ++i) {
+				EXPECT_EQ(myPvector[i], i + 1);
+			}
+			for (size_t i = 0; i < 2; ++i) {
+				EXPECT_EQ(myPvector[i + 5], id + i);
+			}
+		}
+
+		TEST(PVectorConcurrency, PushBack) {
+			constexpr size_t repeats_number = 100;
+			constexpr size_t threads_number = 16;
+			PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5 };
+			std::thread threads[threads_number];
+			for (size_t repeat = 0; repeat < repeats_number; ++repeat) {
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i] = std::thread(&PushBackFunc, std::ref(pvector));
+				}
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i].join();
+				}
+			}
+		}
+	}
+
+	namespace {
+		void UndoRedoFunc(PersistentVector<size_t>& pvector) {
+			auto id = std::hash<std::thread::id>{}(std::this_thread::get_id());
+			auto myPvector = pvector.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.redo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.redo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.redo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.push_back(id);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.push_back(id + 1);
+			for (size_t i = 0; i < 3; ++i) {
+				EXPECT_EQ(myPvector[i], i + 1);
+			}
+			for (size_t i = 0; i < 2; ++i) {
+				EXPECT_EQ(myPvector[i + 3], id + i);
+			}
+		}
+
+		TEST(PVectorConcurrency, UndoRedo) {
+			constexpr size_t repeats_number = 100;
+			constexpr size_t threads_number = 16;
+			PersistentVector<size_t> pvector;
+			pvector = pvector.push_back(1).push_back(2).push_back(3).push_back(4).push_back(5);
+			std::thread threads[threads_number];
+			for (size_t repeat = 0; repeat < repeats_number; ++repeat) {
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i] = std::thread(&UndoRedoFunc, std::ref(pvector));
+				}
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i].join();
+				}
+			}
+		}
+	}
+
 }

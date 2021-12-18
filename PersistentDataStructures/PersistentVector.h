@@ -84,8 +84,7 @@ namespace pds {
 
 
         PersistentVector() :
-            m_primeVectorTree(std::make_shared<PrimeVectorTree>()),
-            m_versionTreeNode(m_primeVectorTree->getInitialVersion()) {}
+            m_versionTreeNode(std::make_shared<VectorVersionTreeNode>(std::make_shared<PrimeTreeRoot<m_primeTreeNodeSize>>())) {}
         PersistentVector(const PersistentVector& other) = default;
         PersistentVector(PersistentVector&& other) noexcept = default;
 
@@ -144,10 +143,8 @@ namespace pds {
         PersistentVector emplace_back(Args&&... args) const;
 
     private:
-        PersistentVector(std::shared_ptr<PrimeVectorTree> primeVectorTree,
-                         std::shared_ptr<VectorVersionTreeNode> versionTreeNode)
-            : m_primeVectorTree(primeVectorTree),
-              m_versionTreeNode(versionTreeNode) {}
+        PersistentVector(std::shared_ptr<VectorVersionTreeNode> versionTreeNode)
+            : m_versionTreeNode(versionTreeNode) {}
 
         void push_back_inplace(const T& value);
 
@@ -315,32 +312,6 @@ namespace pds {
             std::shared_ptr<VectorVersionTreeNode> m_myOrig;
         };
 
-        /*
-        *
-        *   PrimeVectorTree - первичное дерево (сборка мусора);
-        *       хранит голову версионного дерева, которая умрет только тогда, когда умрет и весь первичный вектор;
-        *       хранит номер последней версии;
-        *
-        */
-        class PrimeVectorTree {
-        public:
-            PrimeVectorTree() : 
-                m_head(std::make_shared<VectorVersionTreeNode>(std::make_shared<PrimeTreeRoot<m_primeTreeNodeSize>>())) {}
-            PrimeVectorTree(const PrimeVectorTree& other) = delete;
-            PrimeVectorTree(PrimeVectorTree&& other) = default;
-
-            PrimeVectorTree& operator=(const PrimeVectorTree&& other) = delete;
-            PrimeVectorTree& operator=(PrimeVectorTree&& other) = delete;
-
-            ~PrimeVectorTree() = default;
-
-            std::shared_ptr<VectorVersionTreeNode> getInitialVersion() { return m_head; }
-
-        private:
-            const std::shared_ptr<VectorVersionTreeNode> m_head;
-        };
-
-        std::shared_ptr<PrimeVectorTree> m_primeVectorTree;
         std::shared_ptr<VectorVersionTreeNode> m_versionTreeNode;
 	};
 
@@ -529,14 +500,13 @@ namespace pds {
         auto newRoot = m_versionTreeNode->getRoot().set(pos, std::move(std::make_shared<T>(value)));
         auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode);
-        return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode);
+        return PersistentVector<T>(newVersionTreeNode);
     }
 
     template<typename T>
     bool PersistentVector<T>::operator==(const PersistentVector<T>& other) const {
         bool out = false;
-        if (m_primeVectorTree == other.m_primeVectorTree
-            && m_versionTreeNode == other.m_versionTreeNode)
+        if (m_versionTreeNode == other.m_versionTreeNode)
         {
             out = true;
         }
@@ -559,7 +529,6 @@ namespace pds {
     template<typename T>
     void PersistentVector<T>::swap(PersistentVector<T>& other) {
         if (this != &other) {
-            std::swap(m_primeVectorTree, other.m_primeVectorTree);
             std::swap(m_versionTreeNode, other.m_versionTreeNode);
         }
     }
@@ -572,7 +541,7 @@ namespace pds {
         auto newRoot = m_versionTreeNode->getRoot().resize(size);
         auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode);
-        return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode);
+        return PersistentVector<T>(newVersionTreeNode);
     }
 
     template<typename T>
@@ -583,7 +552,7 @@ namespace pds {
         auto newRoot = m_versionTreeNode->getRoot().resize(size, value);
         auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode);
-        return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode);
+        return PersistentVector<T>(newVersionTreeNode);
     }
 
     template<typename T>
@@ -609,13 +578,13 @@ namespace pds {
     template<typename T>
     inline PersistentVector<T> PersistentVector<T>::undo() const {
         auto newVersion = std::make_shared<VectorVersionTreeNode>(m_versionTreeNode->getParent(), m_versionTreeNode);
-        return PersistentVector(m_primeVectorTree, newVersion);
+        return PersistentVector(newVersion);
     }
 
     template<typename T>
     inline PersistentVector<T> PersistentVector<T>::redo() const {
         auto redoChild = m_versionTreeNode->getRedoChild();
-        return PersistentVector(m_primeVectorTree, redoChild);
+        return PersistentVector(redoChild);
     }
 
     template<typename T>
@@ -638,7 +607,7 @@ namespace pds {
         auto newRoot = m_versionTreeNode->getRoot().emplace_back(std::move(std::make_shared<T>(value)));
         auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode);
-        return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode);
+        return PersistentVector<T>(newVersionTreeNode);
     }
 
     template<typename T>
@@ -646,7 +615,7 @@ namespace pds {
         auto newRoot = m_versionTreeNode->getRoot().pop_back();
         auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode);
-        return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode);
+        return PersistentVector<T>(newVersionTreeNode);
     }
 
     template<typename T>
@@ -655,7 +624,7 @@ namespace pds {
         auto newRoot = m_versionTreeNode->getRoot().emplace_back(std::move(std::make_shared<T, Args...>(args...)));
         auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode);
-        return PersistentVector<T>(m_primeVectorTree, newVersionTreeNode);
+        return PersistentVector<T>(newVersionTreeNode);
     }
 
     template<typename T>
