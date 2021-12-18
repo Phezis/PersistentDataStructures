@@ -4,7 +4,8 @@ project(PersistentDataStructures_test)
 
 enable_testing()
 
-set(SOURCE_EXE "PersistentVectorTests.cpp" "PersistentListTests.cpp")
+set(SOURCE_EXE #"PersistentVectorTests.cpp" 
+	"PersistentListTests.cpp" "PersistentMapTests.cpp")
 
 add_executable(PersistentDataStructures_test ${SOURCE_EXE})
 

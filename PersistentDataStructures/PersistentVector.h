@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "VersionTree.h"
 #include "Utils.h"
 
 #include <memory>
@@ -55,6 +54,8 @@ namespace pds {
         inline bool operator<(const vector_const_iterator& other) const;
         inline bool operator>=(const vector_const_iterator& other) const;
         inline bool operator<=(const vector_const_iterator& other) const;
+
+        std::size_t getId() const;
     };
 
     template<typename T>
@@ -88,6 +89,7 @@ namespace pds {
         PersistentVector(const PersistentVector& other) = default;
         PersistentVector(PersistentVector&& other) noexcept = default;
 
+        PersistentVector(std::size_t count);
         PersistentVector(std::size_t count, const T& value);
 
         template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type = false>
@@ -120,6 +122,9 @@ namespace pds {
         PersistentVector resize(std::size_t size) const;
         PersistentVector resize(std::size_t size, const T& value) const;
 
+
+        template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type = false>
+        PersistentVector reset(InputIt first, InputIt last) const;
 
 		std::size_t size() const;
 		bool empty() const;
@@ -431,6 +436,11 @@ namespace pds {
     }
 
     template<typename T>
+    inline std::size_t vector_const_iterator<T>::getId() const {
+        return m_id;
+    }
+
+    template<typename T>
     inline vector_const_iterator<T> operator+(const typename vector_const_iterator<T>::difference_type lhs, const vector_const_iterator<T>& rhs) {
         return rhs + lhs;
     }
@@ -446,6 +456,12 @@ namespace pds {
     *   Persistent vector
     * 
     */
+    template<typename T>
+    PersistentVector<T>::PersistentVector(std::size_t count) : PersistentVector<T>::PersistentVector() {
+        for (size_t i = 0; i < count; ++i) {
+            push_back_inplace(T());
+        }
+    }
 
     template<typename T>
     PersistentVector<T>::PersistentVector(std::size_t count, const T& value) : PersistentVector<T>::PersistentVector() {
@@ -613,6 +629,18 @@ namespace pds {
     template<typename T>
     inline PersistentVector<T> PersistentVector<T>::pop_back() const {
         auto newRoot = m_versionTreeNode->getRoot().pop_back();
+        auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
+        auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode);
+        return PersistentVector<T>(newVersionTreeNode);
+    }
+
+    template<typename T>
+    template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type>
+    inline PersistentVector<T> PersistentVector<T>::reset(InputIt first, InputIt last) const {
+        auto newRoot = std::make_shared<PrimeTreeRoot<m_primeTreeNodeSize>>();
+        for (; first != last; ++first) {
+            newRoot->emplace_back_inplace(std::move(std::make_shared<T>(T(*first))));
+        }
         auto newVectorVersionTreeNode = nullptr == m_versionTreeNode->getRedoChild() ? m_versionTreeNode : m_versionTreeNode->getOrig();
         auto newVersionTreeNode = std::make_shared<VectorVersionTreeNode>(newRoot, newVectorVersionTreeNode);
         return PersistentVector<T>(newVersionTreeNode);
@@ -1031,7 +1059,7 @@ namespace pds {
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
-    inline typename PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::NodeType PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::type() const{
+    inline typename PersistentVector<T>::template PrimeTreeNode<degreeOfTwo>::NodeType PersistentVector<T>::PrimeTreeNode<degreeOfTwo>::type() const {
         return m_type;
     }
 

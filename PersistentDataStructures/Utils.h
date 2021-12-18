@@ -5,13 +5,13 @@ namespace pds {
 	template<typename ...Types>
 	using void_t = void;
 
-	template <class Iter>
+	template <typename Iter>
 	using Iter_cat = typename std::iterator_traits<Iter>::iterator_category;
 
-	template <class T, class = void>
+	template <typename T, typename = void>
 	constexpr bool is_iterator = false;
 
-	template <class T>
+	template <typename T>
 	constexpr bool is_iterator<T, void_t<Iter_cat<T>>> = true;
 
 	namespace Utils {
