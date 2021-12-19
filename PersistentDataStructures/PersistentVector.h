@@ -506,7 +506,7 @@ namespace pds {
     template<typename T>
     inline const T& PersistentVector<T>::at(std::size_t pos) const {
         if (pos >= size()) {
-            throw std::out_of_range();
+            throw std::out_of_range("Index is greater than vector size");
         }
         return (*this)[pos];
     }

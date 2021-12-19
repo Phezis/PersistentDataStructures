@@ -259,47 +259,38 @@ namespace {
 
 
 	/*
-	*	Setting
+	*	Erasing
 	*/
 
-//	TEST(PVectorSetting, OnlyOne) {
-//		PersistentVector<size_t> srcpvector = { 12345 };
-//		auto pvector = srcpvector.set(0, 0);
-//		EXPECT_EQ(srcpvector.size(), 1);
-//		EXPECT_EQ(pvector.size(), 1);
-//		EXPECT_EQ(srcpvector[0], 12345);
-//		EXPECT_EQ(pvector[0], 0);
-//	}
-//
-//	TEST(PVectorSetting, Some) {
-//		PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5 };
-//		for (size_t i = 0; i < pvector.size(); ++i) {
-//			pvector = pvector.set(i, i);
-//		}
-//		EXPECT_EQ(pvector.size(), 5);
-//		for (size_t i = 0; i < pvector.size(); ++i) {
-//			EXPECT_EQ(pvector[i], i);
-//		}
-//	}
-//
-//	TEST(PVectorSetting, Huge) {
-//		constexpr size_t size = (1 << 13) + 1;
-//		PersistentVector<size_t> pvector(size, 0);
-//		for (size_t i = 0; i < pvector.size(); ++i) {
-//			pvector = pvector.set(i, i + 1);
-//		}
-//		EXPECT_EQ(pvector.size(), size);
-//		for (size_t i = 0; i < pvector.size(); ++i) {
-//			EXPECT_EQ(pvector[i], i + 1);
-//		}
-//	}
-//
-//
-//	/*
-//	*	Iterators
-//	*/
-//
-//
+	TEST(PVectorErasing, Existed) {
+		vector<pair<size_t, size_t>> v = { { 0, 0 }, { 1, 1 }, { 2, 2 }, { 3, 3 }, { 4, 4 } };
+		PersistentMap<size_t, size_t, MyHash> pmap(v.cbegin(), v.cend(), 16, MyHash());
+		size_t size = 5;
+		for (size_t j = 0; j < 5; ++j, --size) {
+			EXPECT_EQ(pmap.size(), size);
+			for (size_t i = 0; i < size; ++i) {
+				EXPECT_EQ(pmap[i], i);
+			}
+			pmap = pmap.erase(4 - j);
+		}
+		EXPECT_TRUE(pmap.empty());
+	}
+
+	TEST(PVectorErasing, NotExisted) {
+		vector<pair<size_t, size_t>> v = { { 0, 0 }, { 1, 1 }, { 2, 2 }, { 3, 3 }, { 4, 4 } };
+		PersistentMap<size_t, size_t, MyHash> pmap(v.cbegin(), v.cend(), 16, MyHash());
+		for (size_t j = 5; j < 10; ++j) {
+			EXPECT_THROW(pmap.erase(j), out_of_range);
+			EXPECT_EQ(pmap.size(), 5);
+		}
+	}
+
+
+	/*
+	*	Iterators
+	*/
+
+
 //	TEST(PVectorIterator, Empty) {
 //		PersistentVector<size_t> pvector;
 //		EXPECT_TRUE(pvector.cbegin() == pvector.cend());
