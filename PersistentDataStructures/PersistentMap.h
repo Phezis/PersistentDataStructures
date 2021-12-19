@@ -13,61 +13,47 @@ namespace pds {
     template<typename Key, typename T, typename Hash = std::hash<Key>>
     class PersistentMap;
 
-    /*template<typename T>
-    class vector_const_iterator {
-        std::size_t m_id;
-        const PersistentVector<T>* m_pvector;
-    public:
-        using iterator_category = std::random_access_iterator_tag;
-        using difference_type = std::ptrdiff_t;
-        using value_type = T;
-        using pointer = const T*;
-        using reference = const T&;
-
-        vector_const_iterator() = delete;
-        vector_const_iterator(std::size_t id, const PersistentVector<T>* pvector) : m_id(id), m_pvector(pvector) {}
-        vector_const_iterator(const vector_const_iterator& other) = default;
-        vector_const_iterator(vector_const_iterator&& other) = default;
-
-        vector_const_iterator& operator=(const vector_const_iterator& other) = default;
-        vector_const_iterator& operator=(vector_const_iterator&& other) = default;
-
-        ~vector_const_iterator() = default;
-
-        inline vector_const_iterator& operator+=(const difference_type shift);
-        inline vector_const_iterator& operator-=(const difference_type shift);
-        inline const T& operator*() const;
-        inline const T* operator->() const;
-        inline const T& operator[](const difference_type shift) const;
-
-        inline vector_const_iterator& operator++();
-        inline vector_const_iterator& operator--();
-        inline vector_const_iterator operator++(int);
-        inline vector_const_iterator operator--(int);
-
-        inline difference_type operator-(const vector_const_iterator& other) const;
-        inline vector_const_iterator operator+(const difference_type shift) const;
-        inline vector_const_iterator operator-(const difference_type shift) const;
-
-        inline bool operator==(const vector_const_iterator& other) const;
-        inline bool operator!=(const vector_const_iterator& other) const;
-        inline bool operator>(const vector_const_iterator& other) const;
-        inline bool operator<(const vector_const_iterator& other) const;
-        inline bool operator>=(const vector_const_iterator& other) const;
-        inline bool operator<=(const vector_const_iterator& other) const;
-    };*/
-
-    /*template<typename T>
-    inline vector_const_iterator<T> operator+(const typename vector_const_iterator<T>::difference_type lhs, const vector_const_iterator<T>& rhs);
-    template<typename T>
-    inline vector_const_iterator<T> operator-(const typename vector_const_iterator<T>::difference_type lhs, const vector_const_iterator<T>& rhs);*/
-
     template<typename Key, typename T, typename Hash>
     class PersistentMap {
         static constexpr std::size_t DEFAULT_INITIAL_SIZE = 256;
+        struct TWrapper;
     public:
-        /*using const_iterator = vector_const_iterator<T>;
-        using const_reverse_iterator = std::reverse_iterator<const_iterator>;*/
+        class map_const_iterator;
+        using const_iterator = map_const_iterator;
+
+        class map_const_iterator {
+            const typename PersistentVector<PersistentVector<TWrapper>>::const_iterator m_outer_end;
+            typename PersistentVector<PersistentVector<TWrapper>>::const_iterator m_outer;
+            typename PersistentVector<TWrapper>::const_iterator m_inner;
+        public:
+            using iterator_category = std::random_access_iterator_tag;
+            using difference_type = std::ptrdiff_t;
+            using value_type = T;
+            using pointer = const T*;
+            using reference = const T&;
+
+            map_const_iterator() = delete;
+            map_const_iterator(typename PersistentVector<PersistentVector<TWrapper>>::const_iterator m_outer_end,
+                                typename PersistentVector<PersistentVector<TWrapper>>::const_iterator m_outer,
+                                typename PersistentVector<TWrapper>::const_iterator m_inner)
+                                : m_outer_end(m_outer_end), m_outer(m_outer), m_inner(m_inner) {}
+            map_const_iterator(const map_const_iterator& other) = default;
+            map_const_iterator(map_const_iterator&& other) = default;
+
+            map_const_iterator& operator=(const map_const_iterator& other) = default;
+            map_const_iterator& operator=(map_const_iterator&& other) = default;
+
+            ~map_const_iterator() = default;
+
+            inline const T& operator*() const;
+            inline const T* operator->() const;
+
+            inline map_const_iterator& operator++();
+            inline map_const_iterator operator++(int);
+
+            inline bool operator==(const map_const_iterator& other) const;
+            inline bool operator!=(const map_const_iterator& other) const;
+        };
 
         PersistentMap(std::size_t initial_size, const Hash& hash) :
             m_hash(hash),
@@ -96,8 +82,8 @@ namespace pds {
         PersistentMap& operator=(const PersistentMap& other) = default;
         PersistentMap& operator=(PersistentMap&& other) = default;
 
-        // const_iterator cbegin() const;
-        // const_iterator cend() const;
+        const_iterator cbegin() const;
+        const_iterator cend() const;
 
         const T& operator[](const Key& key) const;
 
@@ -130,8 +116,6 @@ namespace pds {
         PersistentMap erase(const Key& key) const;
 
     private:
-        struct TWrapper;
-
         PersistentMap(const Hash& hash, std::size_t size, std::shared_ptr<PersistentVector<PersistentVector<TWrapper>>> vector) :
             m_hash(hash),
             m_size(size),
@@ -176,117 +160,44 @@ namespace pds {
     *
     */
 
-    //template<typename T>
-    //inline vector_const_iterator<T>& vector_const_iterator<T>::operator+=(const difference_type shift) {
-    //    m_id += shift;
-    //    return *this;
-    //}
+    template<typename Key, typename T, typename Hash>
+    inline const T& PersistentMap<Key, T, Hash>::map_const_iterator::operator*() const {
+        return *(m_inner->value);
+    }
 
-    //template<typename T>
-    //inline vector_const_iterator<T>& vector_const_iterator<T>::operator-=(const difference_type shift) {
-    //    m_id -= shift;
-    //    return *this;
-    //}
+    template<typename Key, typename T, typename Hash>
+    inline const T* PersistentMap<Key, T, Hash>::map_const_iterator::operator->() const {
+        return &(*(m_inner->value));
+    }
 
-    //template<typename T>
-    //inline const T& vector_const_iterator<T>::operator*() const {
-    //    return (*m_pvector)[m_id];
-    //}
+    template<typename Key, typename T, typename Hash>
+    inline typename PersistentMap<Key, T, Hash>::map_const_iterator& PersistentMap<Key, T, Hash>::map_const_iterator::operator++() {
+        ++m_inner;
+        if (m_inner == m_outer->cend()) {
+            m_outer = std::find_if(++m_outer, m_outer_end, [](const PersistentVector<TWrapper>& pvector) { return !pvector.empty(); });
+            if (m_outer != m_outer_end) {
+                m_inner = m_outer->cbegin();
+            }
+        }
+        return *this;
+    }
 
-    //template<typename T>
-    //inline const T* vector_const_iterator<T>::operator->() const {
-    //    return &(*m_pvector)[m_id];
-    //}
+    template<typename Key, typename T, typename Hash>
+    inline typename PersistentMap<Key, T, Hash>::map_const_iterator PersistentMap<Key, T, Hash>::map_const_iterator::operator++(int) {
+        auto copy = *this;
+        operator++();
+        return copy;
+    }
 
-    //template<typename T>
-    //inline const T& vector_const_iterator<T>::operator[](const difference_type shift) const {
-    //    return (*m_pvector)[m_id + shift];
-    //}
+    template<typename Key, typename T, typename Hash>
+    inline bool PersistentMap<Key, T, Hash>::map_const_iterator::operator==(const map_const_iterator& other) const {
+        return m_outer == other.m_outer;
+    }
 
-    //template<typename T>
-    //inline vector_const_iterator<T>& vector_const_iterator<T>::operator++() {
-    //    ++m_id;
-    //    return *this;
-    //}
-
-    //template<typename T>
-    //inline vector_const_iterator<T>& vector_const_iterator<T>::operator--() {
-    //    --m_id;
-    //    return *this;
-    //}
-
-    //template<typename T>
-    //inline vector_const_iterator<T> vector_const_iterator<T>::operator++(int) {
-    //    auto copy = *this;
-    //    ++m_id;
-    //    return copy;
-    //}
-
-    //template<typename T>
-    //inline vector_const_iterator<T> vector_const_iterator<T>::operator--(int) {
-    //    auto copy = *this;
-    //    --m_id;
-    //    return copy;
-    //}
-
-    //template<typename T>
-    //inline typename vector_const_iterator<T>::difference_type vector_const_iterator<T>::operator-(const vector_const_iterator& other) const {
-    //    return static_cast<vector_const_iterator<T>::difference_type>(m_id - other.m_id);
-    //}
-
-    //template<typename T>
-    //inline vector_const_iterator<T> vector_const_iterator<T>::operator+(const difference_type shift) const {
-    //    auto copy = *this;
-    //    copy += shift;
-    //    return copy;
-    //}
-
-    //template<typename T>
-    //inline vector_const_iterator<T> vector_const_iterator<T>::operator-(const difference_type shift) const {
-    //    auto copy = *this;
-    //    copy -= shift;
-    //    return copy;
-    //}
-
-    //template<typename T>
-    //inline bool vector_const_iterator<T>::operator==(const vector_const_iterator<T>& other) const {
-    //    return m_id == other.m_id;
-    //}
-
-    //template<typename T>
-    //inline bool vector_const_iterator<T>::operator!=(const vector_const_iterator<T>& other) const {
-    //    return !(*this == other);
-    //}
-
-    //template<typename T>
-    //inline bool vector_const_iterator<T>::operator<(const vector_const_iterator<T>& other) const {
-    //    return m_id < other.m_id;
-    //}
-
-    //template<typename T>
-    //inline bool vector_const_iterator<T>::operator>(const vector_const_iterator<T>& other) const {
-    //    return other < *this;
-    //}
-
-    //template<typename T>
-    //inline bool vector_const_iterator<T>::operator>=(const vector_const_iterator<T>& other) const {
-    //    return !(*this < other);
-    //}
-
-    //template<typename T>
-    //inline bool vector_const_iterator<T>::operator<=(const vector_const_iterator<T>& other) const {
-    //    return !(other < *this);
-    //}
-
-    //template<typename T>
-    //inline vector_const_iterator<T> operator+(const typename vector_const_iterator<T>::difference_type lhs, const vector_const_iterator<T>& rhs) {
-    //    return rhs + lhs;
-    //}
-
-    //template<typename T>
-    //inline vector_const_iterator<T> operator-(const typename vector_const_iterator<T>::difference_type lhs, const vector_const_iterator<T>& rhs) {
-    //    return rhs - lhs;
-    //}
+    template<typename Key, typename T, typename Hash>
+    inline bool PersistentMap<Key, T, Hash>::map_const_iterator::operator!=(const map_const_iterator& other) const {
+        return !(*this == other);
+    }
 
 
     /*
@@ -310,6 +221,16 @@ namespace pds {
         m_vector = std::make_shared<PersistentVector<PersistentVector<TWrapper>>>(vectorOfPersistentVectors.cbegin(), vectorOfPersistentVectors.cend());
     }
 
+    template<typename Key, typename T, typename Hash>
+    inline typename PersistentMap<Key, T, Hash>::const_iterator PersistentMap<Key, T, Hash>::cbegin() const {
+        auto it = std::find_if(m_vector->cbegin(), m_vector->cend(), [](const PersistentVector<TWrapper>& pvector) { return !pvector.empty(); });
+        return const_iterator(m_vector->cend(), it, it == m_vector->cend() ? m_vector->cbegin()->cbegin() : it->cbegin());
+    }
+
+    template<typename Key, typename T, typename Hash>
+    inline typename PersistentMap<Key, T, Hash>::const_iterator PersistentMap<Key, T, Hash>::cend() const {
+        return const_iterator(m_vector->cend(), m_vector->cend(), m_vector->cbegin()->cbegin());
+    }
 
     template<typename Key, typename T, typename Hash>
     inline const T& PersistentMap<Key, T, Hash>::operator[](const Key& key) const {
