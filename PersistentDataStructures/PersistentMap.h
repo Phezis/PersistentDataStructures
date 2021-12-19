@@ -82,13 +82,14 @@ namespace pds {
         PersistentMap(std::size_t initial_size) : PersistentMap(initial_size, Hash()) {}
 
         template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type = false>
-        PersistentMap(InputIt first, InputIt last, std::size_t initial_size, Hash& hash);
+        PersistentMap(InputIt first, InputIt last, std::size_t initial_size, const Hash& hash);
 
         template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type = false>
         PersistentMap(InputIt first, InputIt last, std::size_t initial_size) : PersistentMap(first, last, initial_size, Hash()) {}
 
-        PersistentMap(std::initializer_list<T> init, std::size_t initial_size, Hash& hash) : PersistentMap(init.begin(), init.end(), initial_size, hash) {}
-        PersistentMap(std::initializer_list<T> init, std::size_t initial_size) : PersistentMap(init.begin(), init.end(), initial_size) {}
+        PersistentMap(std::initializer_list<std::pair<const Key, T>> init, std::size_t initial_size, Hash& hash) : PersistentMap(init.begin(), init.end(), initial_size, hash) {}
+        PersistentMap(std::initializer_list<std::pair<const Key, T>> init, std::size_t initial_size) : PersistentMap(init.begin(), init.end(), initial_size) {}
+        PersistentMap(std::initializer_list<std::pair<const Key, T>> init) : PersistentMap(init.begin(), init.end(), DEFAULT_INITIAL_SIZE) {}
 
         ~PersistentMap() = default;
 
@@ -135,7 +136,15 @@ namespace pds {
             m_size(size),
             m_vector(vector) {}
 
-        std::vector<PersistentVector<TWrapper>> getReallocatedVector(const Key& key, const T& value) const;
+        // returns true if that was unique Key and false if existed key was updated
+        static bool insertToSequenceAsHash(std::vector<std::vector<TWrapper>>& sequence, const Key& key, std::shared_ptr<T> value, std::size_t hash);
+
+        template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type = false>
+        static std::vector<std::vector<TWrapper>> getReallocatedVector(InputIt begin, InputIt end, std::size_t size, const Hash& hashFunc);
+
+        static std::vector<PersistentVector<TWrapper>> getReallocatedVectorOfPersistentVectors(std::vector<std::vector<TWrapper>> resetVector, std::size_t size);
+
+        std::vector<PersistentVector<TWrapper>> getReallocatedVectorOfPersistentVectors(const Key& key, const T& value) const;
 
         struct TWrapper {
             TWrapper() = default;
@@ -285,8 +294,17 @@ namespace pds {
 
     template<typename Key, typename T, typename Hash>
     template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type>
-    PersistentMap<Key, T, Hash>::PersistentMap(InputIt first, InputIt last, std::size_t initial_size, Hash& hash) : PersistentMap(initial_size, hash) {
-
+    PersistentMap<Key, T, Hash>::PersistentMap(InputIt first, InputIt last, std::size_t initial_size, const Hash& hashFunc) : PersistentMap(initial_size, hashFunc) {
+        std::vector<std::vector<TWrapper>> resetVector(initial_size);
+        m_size = 0;
+        for (auto it = first; it != last; ++it) {
+            auto hash = hashFunc(it->first) % (initial_size);
+            if (insertToSequenceAsHash(resetVector, it->first, std::make_shared<T>(it->second), hash)) {
+                ++m_size;
+            }
+        }
+        auto vectorOfPersistentVectors = getReallocatedVectorOfPersistentVectors(resetVector, initial_size);
+        m_vector = std::make_shared<PersistentVector<PersistentVector<TWrapper>>>(vectorOfPersistentVectors.cbegin(), vectorOfPersistentVectors.cend());
     }
 
 
@@ -319,7 +337,7 @@ namespace pds {
         if ((*m_vector)[hash].empty()) {
             ++newSize;
             if (newSize > m_vector->size() / 2) {
-                auto reallocatedVector = getReallocatedVector(key, value);
+                auto reallocatedVector = getReallocatedVectorOfPersistentVectors(key, value);
                 outVector = std::make_shared<PersistentVector<PersistentVector<TWrapper>>>(
                     m_vector->reset(reallocatedVector.cbegin(), reallocatedVector.cend()));
             }
@@ -333,7 +351,7 @@ namespace pds {
             if (collided == (*m_vector)[hash].cend()) {
                 ++newSize;
                 if (newSize > m_vector->size() / 2) {
-                    auto reallocatedVector = getReallocatedVector(key, value);
+                    auto reallocatedVector = getReallocatedVectorOfPersistentVectors(key, value);
                     outVector = std::make_shared<PersistentVector<PersistentVector<TWrapper>>>(
                         m_vector->reset(reallocatedVector.cbegin(), reallocatedVector.cend()));
                 }
@@ -426,14 +444,53 @@ namespace pds {
     }
 
     template<typename Key, typename T, typename Hash>
-    inline std::vector<PersistentVector<typename PersistentMap<Key, T, Hash>::TWrapper>> PersistentMap<Key, T, Hash>::getReallocatedVector(const Key& key, const T& value) const {
-        std::vector<std::vector<TWrapper>> resetVector(m_vector->size() * 2);
-        for (auto it = m_vector->cbegin(); it != m_vector->cend(); ++it) {
-            for (auto it_in = it->cbegin(); it_in != it->cend(); ++it_in) {
-                auto hash = m_hash(it_in->key) % (m_vector->size() * 2);
-                resetVector[hash].emplace_back(hash, it_in->key, it_in->value);
+    inline bool PersistentMap<Key, T, Hash>::insertToSequenceAsHash(std::vector<std::vector<TWrapper>>& sequence, const Key& key, std::shared_ptr<T> value, std::size_t hash) {
+        bool found = false;
+        if (sequence[hash].empty()) {
+            sequence[hash].emplace_back(hash, key, value);
+        }
+        else {
+            for (auto& wrapper : sequence[hash]) {
+                if (wrapper.key == key) {
+                    wrapper.value = std::move(value);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                sequence[hash].emplace_back(hash, key, value);
             }
         }
+        return !found;
+    }
+
+    template<typename Key, typename T, typename Hash>
+    template<typename InputIt, typename std::enable_if<is_iterator<InputIt>, bool>::type>
+    inline std::vector<std::vector<typename PersistentMap<Key, T, Hash>::TWrapper>> PersistentMap<Key, T, Hash>::getReallocatedVector(InputIt begin, InputIt end, std::size_t size, const Hash& hashFunc) {
+        std::vector<std::vector<TWrapper>> resetVector(size);
+        for (auto it = begin; it != end; ++it) {
+            for (auto it_in = it->cbegin(); it_in != it->cend(); ++it_in) {
+                auto hash = hashFunc(it_in->key) % (size);
+                insertToSequenceAsHash(resetVector, it_in->key, it_in->value, hash);
+            }
+        }
+        return resetVector;
+    }
+
+    template<typename Key, typename T, typename Hash>
+    inline std::vector<PersistentVector<typename PersistentMap<Key, T, Hash>::TWrapper>> 
+        PersistentMap<Key, T, Hash>::getReallocatedVectorOfPersistentVectors(std::vector<std::vector<typename PersistentMap<Key, T, Hash>::TWrapper>> resetVector, std::size_t size)
+    {
+        std::vector<PersistentVector<TWrapper>> out(size);
+        for (std::size_t i = 0; i < resetVector.size(); ++i) {
+            out[i] = PersistentVector<TWrapper>(resetVector[i].cbegin(), resetVector[i].cend());
+        }
+        return out;
+    }
+
+    template<typename Key, typename T, typename Hash>
+    inline std::vector<PersistentVector<typename PersistentMap<Key, T, Hash>::TWrapper>> PersistentMap<Key, T, Hash>::getReallocatedVectorOfPersistentVectors(const Key& key, const T& value) const {
+        auto resetVector = getReallocatedVector(m_vector->cbegin(), m_vector->cend(), m_vector->size() * 2, m_hash);
         auto hash = m_hash(key) % (m_vector->size() * 2);
         if (!resetVector[hash].empty()) {
             bool found = false;
@@ -451,10 +508,6 @@ namespace pds {
         else {
             resetVector[hash].emplace_back(hash, key, std::move(std::make_shared<T>(value)));
         }
-        std::vector<PersistentVector<TWrapper>> out(m_vector->size() * 2);
-        for (std::size_t i = 0; i < resetVector.size(); ++i) {
-            out[i] = PersistentVector<TWrapper>(resetVector[i].cbegin(), resetVector[i].cend());
-        }
-        return out;
+        return getReallocatedVectorOfPersistentVectors(resetVector, m_vector->size() * 2);
     }
 }

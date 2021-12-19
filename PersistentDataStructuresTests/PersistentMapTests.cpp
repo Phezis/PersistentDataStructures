@@ -174,89 +174,94 @@ namespace {
 	*	Extended creation
 	*/
 
-//	TEST(PVectorCertainValueCreation, NoOne) {
-//		PersistentVector<size_t> pvector(0, 0);
-//		EXPECT_EQ(pvector.size(), 0);
-//		EXPECT_TRUE(pvector.empty());
-//	}
-//
-//	TEST(PVectorCertainValueCreation, OnlyOne) {
-//		PersistentVector<size_t> pvector(1, 12345);
-//		EXPECT_EQ(pvector.size(), 1);
-//		EXPECT_EQ(pvector[0], 12345);
-//	}
-//
-//	TEST(PVectorCertainValueCreation, Huge) {
-//		constexpr size_t size = (1 << 15) + 1;
-//		PersistentVector<size_t> pvector(size, 12345);
-//		EXPECT_EQ(pvector.size(), size);
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector[i], 12345);
-//		}
-//	}
-//
-//	TEST(PVectorIteratorCreation, NoOne) {
-//		std::vector<size_t> srcvector;
-//		PersistentVector<size_t> pvector(srcvector.begin(), srcvector.end());
-//		EXPECT_EQ(pvector.size(), 0);
-//		EXPECT_TRUE(pvector.empty());
-//	}
-//
-//	TEST(PVectorIteratorCreation, OnlyOne) {
-//		std::vector<size_t> srcvector = { 12345 };
-//		PersistentVector<size_t> pvector(srcvector.begin(), srcvector.end());
-//		EXPECT_EQ(pvector.size(), 1);
-//		EXPECT_EQ(pvector[0], 12345);
-//	}
-//
-//	TEST(PVectorIteratorCreation, Some) {
-//		std::vector<size_t> srcvector = { 1, 2, 3, 4, 5 };
-//		PersistentVector<size_t> pvector(srcvector.begin(), srcvector.end());
-//		EXPECT_EQ(pvector.size(), srcvector.size());
-//		for (size_t i = 0; i < srcvector.size(); ++i) {
-//			EXPECT_EQ(pvector[i], srcvector[i]);
-//		}
-//	}
-//
-//	TEST(PVectorIteratorCreation, Huge) {
-//		constexpr size_t size = (1 << 15) + 1;
-//		std::vector<size_t> srcvector(size);
-//
-//		for (size_t i = 0; i < srcvector.size(); ++i) {
-//			srcvector[i] = i + 1;
-//		}
-//		PersistentVector<size_t> pvector(srcvector.begin(), srcvector.end());
-//		EXPECT_EQ(pvector.size(), srcvector.size());
-//		for (size_t i = 0; i < srcvector.size(); ++i) {
-//			EXPECT_EQ(pvector[i], srcvector[i]);
-//		}
-//	}
-//
-//	TEST(PVectorInitListCreation, NoOne) {
-//		PersistentVector<size_t> pvector = {};
-//		EXPECT_EQ(pvector.size(), 0);
-//		EXPECT_TRUE(pvector.empty());
-//	}
-//
-//	TEST(PVectorInitListCreation, OnlyOne) {
-//		PersistentVector<size_t> pvector = { 12345 };
-//		EXPECT_EQ(pvector.size(), 1);
-//		EXPECT_EQ(pvector[0], 12345);
-//	}
-//
-//	TEST(PVectorInitListCreation, Some) {
-//		PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5 };
-//		EXPECT_EQ(pvector.size(), 5);
-//		for (size_t i = 0; i < 5; ++i) {
-//			EXPECT_EQ(pvector[i], i + 1);
-//		}
-//	}
-//
-//
-//	/*
-//	*	Setting
-//	*/
-//
+	TEST(PMamIteratorCreation, NoOne) {
+		vector<pair<size_t, size_t>> v;
+		PersistentMap<size_t, size_t> pmap(v.cbegin(), v.cend(), 16);
+		EXPECT_EQ(pmap.size(), 0);
+		EXPECT_TRUE(pmap.empty());
+	}
+
+	TEST(PMamIteratorCreation, OnlyOne) {
+		vector<pair<size_t, size_t>> v = { { 3, 12 } };
+		PersistentMap<size_t, size_t> pmap(v.cbegin(), v.cend(), 16);
+		EXPECT_EQ(pmap.size(), 1);
+		EXPECT_EQ(pmap[3], 12);
+	}
+
+	TEST(PMamIteratorCreation, Some) {
+		vector<pair<size_t, size_t>> v = { { 3, 12 }, { 8, 22 }, { 400, 65 }, { 35453, 0 }, { 555, 555 } };
+		PersistentMap<size_t, size_t> pmap(v.cbegin(), v.cend(), 16);
+		EXPECT_EQ(pmap.size(), 5);
+		EXPECT_EQ(pmap[3], 12);
+		EXPECT_EQ(pmap[8], 22);
+		EXPECT_EQ(pmap[400], 65);
+		EXPECT_EQ(pmap[35453], 0);
+		EXPECT_EQ(pmap[555], 555);
+	}
+
+	TEST(PMamIteratorCreation, Huge) {
+		constexpr size_t size = (1 << 15);
+		vector<pair<size_t, size_t>> v;
+		for (size_t i = 0; i < size; ++i) {
+			v.emplace_back(pair<size_t, size_t>(i, i + 1));
+		}
+		PersistentMap<size_t, size_t> pmap(v.cbegin(), v.cend(), 2*size);
+		EXPECT_EQ(pmap.size(), size);
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pmap[i], i + 1);
+		}
+	}
+
+	TEST(PMamInitListCreation, NoOne) {
+		PersistentMap<size_t, size_t> pmap({  }, 16);
+		EXPECT_EQ(pmap.size(), 0);
+		EXPECT_TRUE(pmap.empty());
+	}
+
+	TEST(PVectorIteratorCreation, OnlyOne) {
+		PersistentMap<size_t, size_t> pmap({ { 3, 12 }, { 8, 22 }, { 400, 65 }, { 35453, 0 }, { 555, 555 } }, 16);
+		EXPECT_EQ(pmap.size(), 5);
+		EXPECT_EQ(pmap[3], 12);
+		EXPECT_EQ(pmap[8], 22);
+		EXPECT_EQ(pmap[400], 65);
+		EXPECT_EQ(pmap[35453], 0);
+		EXPECT_EQ(pmap[555], 555);
+	}
+	namespace {
+		struct MyHash {
+			std::size_t operator()(size_t key) const {
+				return key;
+			}
+		};
+
+		TEST(PVectorOwnHash, IteratorCreation) {
+			vector<pair<size_t, size_t>> v = { { 3, 12 }, { 8, 22 }, { 400, 65 }, { 35453, 0 }, { 555, 555 } };
+			PersistentMap<size_t, size_t, MyHash> pmap(v.cbegin(), v.cend(), 16, MyHash());
+			EXPECT_EQ(pmap.size(), 5);
+			EXPECT_EQ(pmap[3], 12);
+			EXPECT_EQ(pmap[8], 22);
+			EXPECT_EQ(pmap[400], 65);
+			EXPECT_EQ(pmap[35453], 0);
+			EXPECT_EQ(pmap[555], 555);
+		}
+
+		TEST(PVectorOwnHash, InitListCreation) {
+			vector<pair<size_t, size_t>> v = { { 3, 12 }, { 8, 22 }, { 400, 65 }, { 35453, 0 }, { 555, 555 } };
+			PersistentMap<size_t, size_t, MyHash> pmap(v.cbegin(), v.cend(), 16, MyHash());
+			EXPECT_EQ(pmap.size(), 5);
+			EXPECT_EQ(pmap[3], 12);
+			EXPECT_EQ(pmap[8], 22);
+			EXPECT_EQ(pmap[400], 65);
+			EXPECT_EQ(pmap[35453], 0);
+			EXPECT_EQ(pmap[555], 555);
+		}
+	}
+
+
+	/*
+	*	Setting
+	*/
+
 //	TEST(PVectorSetting, OnlyOne) {
 //		PersistentVector<size_t> srcpvector = { 12345 };
 //		auto pvector = srcpvector.set(0, 0);
