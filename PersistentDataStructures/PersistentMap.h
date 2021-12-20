@@ -108,7 +108,7 @@ namespace pds {
         PersistentMap clear() const;
 
         std::size_t count(const Key& key) const;
-        // iterator find() const;
+        const_iterator find(const Key& key) const;
         bool contains(const Key& key) const;
 
         // if element does not exist throws out_of_range
@@ -364,9 +364,16 @@ namespace pds {
 
     template<typename Key, typename T, typename Hash>
     inline std::size_t PersistentMap<Key, T, Hash>::count(const Key& key) const {
+        return find(key) == cend() ? 0 : 1;
+    }
+
+    template<typename Key, typename T, typename Hash>
+    inline typename PersistentMap<Key, T, Hash>::const_iterator PersistentMap<Key, T, Hash>::find(const Key& key) const {
         auto hash = m_hash(key) % m_vector->size();
-        auto it = std::find_if((*m_vector)[hash].cbegin(), (*m_vector)[hash].cend(), [&key](const std::pair<Key, T>& wrapper) { return key == wrapper.first; });
-        return it == (*m_vector)[hash].cend() ? 0 : 1;
+        auto inner = std::find_if((*m_vector)[hash].cbegin(), (*m_vector)[hash].cend(), [&key](const std::pair<Key, T>& wrapper) { return key == wrapper.first; });
+        return inner == (*m_vector)[hash].cend() ? 
+            const_iterator(m_vector->cend(), m_vector->cend(), inner) :
+            const_iterator(m_vector->cend(), PersistentVector<PersistentVector<std::pair<Key, T>>>::const_iterator(hash, m_vector.get()), inner);
     }
 
     template<typename Key, typename T, typename Hash>

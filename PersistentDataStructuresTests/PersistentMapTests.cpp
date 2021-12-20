@@ -523,6 +523,48 @@ namespace {
 
 
 	/*
+	*	Searching
+	*/
+
+	TEST(PMapSearching, Empty) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		EXPECT_EQ(pmap.find(0), pmap.cend());
+	}
+
+	TEST(PMapSearching, Exists) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		pmap = pmap.set(123, 123);
+		EXPECT_EQ(pmap.find(123), pmap.cbegin());
+	}
+
+	TEST(PMapSearching, DoesntExist) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		pmap = pmap.set(123, 123);
+		EXPECT_EQ(pmap.find(0), pmap.cend());
+	}
+
+	TEST(PMapSearching, ExistsHuge) {
+		constexpr size_t size = 1 << 13;
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		for (size_t i = 0; i < size; ++i) {
+			pmap = pmap.set(i, i);
+		}
+		auto it = pmap.cbegin();
+		++(++(++it));
+		EXPECT_EQ(pmap.find(it->first), it);
+	}
+
+	TEST(PMapSearching, DoesntExistHuge) {
+		constexpr size_t size = 1 << 13;
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		for (size_t i = 0; i < size; ++i) {
+			pmap = pmap.set(i, i);
+		}
+		EXPECT_EQ(pmap.find(size + 1), pmap.cend());
+	}
+
+
+	/*
 	*	UNDO & REDO
 	*/
 
