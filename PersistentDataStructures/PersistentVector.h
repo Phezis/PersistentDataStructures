@@ -237,7 +237,6 @@ namespace pds {
 
             ~PrimeTreeRoot() = default;
 
-            T& operator[](std::size_t pos);
             const T& operator[](std::size_t pos) const;
 
             std::shared_ptr<PrimeTreeRoot> emplace_back(std::shared_ptr<T>&& value) const;
@@ -684,14 +683,8 @@ namespace pds {
 
     template<typename T>
     template<std::uint32_t degreeOfTwo>
-    inline T& PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::operator[](std::size_t pos) {
-        return m_child->get(pos, m_depth - 1);
-    }
-
-    template<typename T>
-    template<std::uint32_t degreeOfTwo>
     inline const T& PersistentVector<T>::PrimeTreeRoot<degreeOfTwo>::operator[](std::size_t pos) const {
-        return (*this)[pos];
+        return m_child->get(pos, m_depth - 1);
     }
 
     template<typename T>

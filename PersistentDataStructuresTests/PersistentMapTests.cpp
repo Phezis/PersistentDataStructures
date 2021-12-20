@@ -301,7 +301,7 @@ namespace {
 
 		EXPECT_TRUE(pmap.cbegin() != pmap.cend());
 		auto it = pmap.cbegin();
-		EXPECT_EQ(*it, 12345);
+		EXPECT_EQ(it->second, 12345);
 		EXPECT_TRUE(++it == pmap.cend());
 	}
 
@@ -313,7 +313,7 @@ namespace {
 		}
 		EXPECT_TRUE(pmap.cbegin() != pmap.cend());
 		for (auto it = pmap.cbegin(); it != pmap.cend(); ++it) {
-			EXPECT_EQ(*it, 54321);
+			EXPECT_EQ(it->second, 54321);
 		}
 	}
 
@@ -325,7 +325,7 @@ namespace {
 		}
 		EXPECT_TRUE(pmap.cbegin() != pmap.cend());
 		for (auto it = pmap.cbegin(); it != pmap.cend(); ++it) {
-			EXPECT_EQ(*it, 54321);
+			EXPECT_EQ(it->second, 54321);
 		}
 	}
 
@@ -366,78 +366,92 @@ namespace {
 	*
 	*/
 
-//	TEST(PVectorComparation, Empty) {
-//		PersistentVector<size_t> pvector;
-//		PersistentVector<size_t> pvector1;
-//		PersistentVector<size_t> pvector2 = pvector;
-//		EXPECT_TRUE(pvector == pvector);
-//		EXPECT_FALSE(pvector != pvector);
-//		EXPECT_TRUE(pvector == pvector1);
-//		EXPECT_FALSE(pvector != pvector1);
-//		EXPECT_TRUE(pvector == pvector2);
-//		EXPECT_FALSE(pvector != pvector2);
-//	}
-//
-//	TEST(PVectorComparation, NonEmptyConstructed) {
-//		PersistentVector<size_t> pvector = { 1, 2, 3 };
-//		PersistentVector<size_t> pvector1 = { 1, 2, 3 };
-//		PersistentVector<size_t> pvector2 = pvector;
-//		EXPECT_TRUE(pvector == pvector);
-//		EXPECT_FALSE(pvector != pvector);
-//		EXPECT_TRUE(pvector == pvector1);
-//		EXPECT_FALSE(pvector != pvector1);
-//		EXPECT_TRUE(pvector == pvector2);
-//		EXPECT_FALSE(pvector != pvector2);
-//	}
-//
-//	TEST(PVectorComparation, SameLength) {
-//		constexpr size_t size = (1 << 13) + 1;
-//		PersistentVector<size_t> pvector(size, 12345);
-//		PersistentVector<size_t> pvector1(size, 12345);
-//		EXPECT_TRUE(pvector == pvector1);
-//		EXPECT_FALSE(pvector != pvector1);
-//		auto pvector2 = pvector1.set(size - 1, 54321);
-//		EXPECT_TRUE(pvector == pvector1);
-//		EXPECT_FALSE(pvector != pvector1);
-//		EXPECT_FALSE(pvector == pvector2);
-//		EXPECT_TRUE(pvector != pvector2);
-//		pvector2 = pvector2.set(size - 1, 12345);
-//		EXPECT_TRUE(pvector2 == pvector);
-//		EXPECT_FALSE(pvector2 != pvector);
-//		EXPECT_TRUE(pvector2 == pvector1);
-//		EXPECT_FALSE(pvector2 != pvector1);
-//		pvector2 = pvector2.set(size - 5, 54321);
-//		EXPECT_FALSE(pvector == pvector2);
-//		EXPECT_TRUE(pvector != pvector2);
-//		EXPECT_FALSE(pvector1 == pvector2);
-//		EXPECT_TRUE(pvector1 != pvector2);
-//	}
-//
-//	TEST(PVectorComparation, DifferentLength) {
-//		constexpr size_t size = (1 << 13) + 1;
-//		PersistentVector<size_t> pvector(size, 12345);
-//		PersistentVector<size_t> pvector1(size - 1, 12345);
-//		EXPECT_FALSE(pvector == pvector1);
-//		EXPECT_TRUE(pvector != pvector1);
-//		auto pvector2 = pvector1.set(size - 2, 54321);
-//		EXPECT_FALSE(pvector == pvector1);
-//		EXPECT_TRUE(pvector != pvector1);
-//		EXPECT_FALSE(pvector1 == pvector2);
-//		EXPECT_TRUE(pvector1 != pvector2);
-//		pvector2 = pvector2.set(size - 2, 12345);
-//		EXPECT_FALSE(pvector == pvector1);
-//		EXPECT_TRUE(pvector != pvector1);
-//		EXPECT_TRUE(pvector1 == pvector2);
-//		EXPECT_FALSE(pvector1 != pvector2);
-//	}
-//
-//
-//	/*
-//	*
-//	*	Swap
-//	*
-//	*/
-//
+	TEST(PMapComparation, Empty) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		PersistentMap<size_t, size_t, MyHash> pmap1;
+		PersistentMap<size_t, size_t, MyHash> pmap2 = pmap;
+		EXPECT_TRUE(pmap == pmap);
+		EXPECT_FALSE(pmap != pmap);
+		EXPECT_TRUE(pmap == pmap1);
+		EXPECT_FALSE(pmap != pmap1);
+		EXPECT_TRUE(pmap == pmap2);
+		EXPECT_FALSE(pmap != pmap2);
+	}
+
+	TEST(PMapComparation, NonEmptyConstructed) {
+		PersistentMap<size_t, size_t, MyHash> pmap = { { 0, 0 }, { 1, 2 }, { 2, 4 } };
+		PersistentMap<size_t, size_t, MyHash> pmap1 = { { 0, 0 }, { 2, 4 }, { 1, 2 } };
+		PersistentMap<size_t, size_t, MyHash> pmap2 = pmap;
+		EXPECT_TRUE(pmap == pmap);
+		EXPECT_FALSE(pmap != pmap);
+		EXPECT_TRUE(pmap == pmap1);
+		EXPECT_FALSE(pmap != pmap1);
+		EXPECT_TRUE(pmap == pmap2);
+		EXPECT_FALSE(pmap != pmap2);
+	}
+
+	TEST(PMapComparation, SameLength) {
+		constexpr size_t size = (1 << 13) + 1;
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		PersistentMap<size_t, size_t, MyHash> pmap1;
+		for (size_t i = 0; i < size; ++i) {
+			pmap = pmap.set(i, i + 1);
+			pmap1 = pmap1.set(i, i + 1);
+		}
+		EXPECT_TRUE(pmap == pmap1);
+		EXPECT_FALSE(pmap != pmap1);
+		auto pmap2 = pmap1.set(size - 1, 54321);
+		EXPECT_TRUE(pmap == pmap1);
+		EXPECT_FALSE(pmap != pmap1);
+		EXPECT_FALSE(pmap == pmap2);
+		EXPECT_TRUE(pmap != pmap2);
+		pmap2 = pmap2.set(size - 1, size);
+		EXPECT_TRUE(pmap2 == pmap1);
+		EXPECT_FALSE(pmap2 != pmap1);
+		EXPECT_TRUE(pmap2 == pmap);
+		EXPECT_FALSE(pmap2 != pmap);
+		pmap2 = pmap2.set(size - 5, 54321);
+		EXPECT_TRUE(pmap == pmap1);
+		EXPECT_FALSE(pmap != pmap1);
+		EXPECT_FALSE(pmap == pmap2);
+		EXPECT_TRUE(pmap != pmap2);
+		pmap2 = pmap2.set(size - 5, size - 4);
+		EXPECT_TRUE(pmap2 == pmap1);
+		EXPECT_FALSE(pmap2 != pmap1);
+		EXPECT_TRUE(pmap2 == pmap);
+		EXPECT_FALSE(pmap2 != pmap);
+	}
+
+	TEST(PMapComparation, DifferentLength) {
+		constexpr size_t size = (1 << 13) + 1;
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		PersistentMap<size_t, size_t, MyHash> pmap1;
+		for (size_t i = 0; i < size - 1; ++i) {
+			pmap = pmap.set(i, i + 1);
+			pmap1 = pmap1.set(i, i + 1);
+		}
+		pmap = pmap.set(size - 1, size);
+		EXPECT_FALSE(pmap == pmap1);
+		EXPECT_TRUE(pmap != pmap1);
+		auto pmap2 = pmap1.set(size - 2, 54321);
+		EXPECT_FALSE(pmap == pmap1);
+		EXPECT_TRUE(pmap != pmap1);
+		EXPECT_FALSE(pmap1 == pmap2);
+		EXPECT_TRUE(pmap1 != pmap2);
+		pmap2 = pmap2.set(size - 2, size - 1);
+		EXPECT_FALSE(pmap == pmap1);
+		EXPECT_TRUE(pmap != pmap1);
+		EXPECT_TRUE(pmap1 == pmap2);
+		EXPECT_FALSE(pmap1 != pmap2);
+	}
+
+
+	/*
+	*
+	*	Swap
+	*
+	*/
+
 //	TEST(PVectorSwap, SwapItself) {
 //		constexpr size_t size = 1 << 12;
 //		PersistentVector<size_t> pvector(size, 12345);
@@ -598,7 +612,7 @@ namespace {
 //		EXPECT_TRUE(pvector.empty());
 //		EXPECT_EQ(pvector1.size(), size);
 //		for (auto it = pvector1.cbegin(); it != pvector1.cend(); ++it) {
-//			EXPECT_EQ(*it, 12345);
+//			EXPECT_EQ(it->second, 12345);
 //		}
 //	}
 //
@@ -610,7 +624,7 @@ namespace {
 //		EXPECT_TRUE(pvector.empty());
 //		EXPECT_EQ(pvector1.size(), size);
 //		for (auto it = pvector1.cbegin(); it != pvector1.cend(); ++it) {
-//			EXPECT_EQ(*it, 12345);
+//			EXPECT_EQ(it->second, 12345);
 //		}
 //	}
 //
@@ -638,7 +652,7 @@ namespace {
 //		EXPECT_EQ(pvector1.size(), size);
 //		EXPECT_EQ(pvector1[0], 0);
 //		for (auto it = pvector1.cbegin() + 1; it != pvector1.cend(); ++it) {
-//			EXPECT_EQ(*it, 12345);
+//			EXPECT_EQ(it->second, 12345);
 //		}
 //	}
 //
@@ -651,7 +665,7 @@ namespace {
 //		EXPECT_EQ(pvector1.size(), size);
 //		EXPECT_EQ(pvector1[0], 0);
 //		for (auto it = pvector1.cbegin() + 1; it != pvector1.cend(); ++it) {
-//			EXPECT_EQ(*it, 12345);
+//			EXPECT_EQ(it->second, 12345);
 //		}
 //	}
 //

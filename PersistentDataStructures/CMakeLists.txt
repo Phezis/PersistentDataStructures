@@ -1,7 +1,14 @@
 ﻿cmake_minimum_required (VERSION 3.8)
 
-set(HEADER_LIB "PersistentVector.h")
+set(HEADER_LIB "PersistentVector.h" "PersistentMap.h" "Utils.h")
 
-add_library(PersistDataStructs INTERFACE ${HEADER_LIB} "PersistentMap.h")
+set(SOURCE_LIB "Utils.cpp")
 
-add_executable(main main.cpp "PersistentMap.h")
+add_library(PersistDataStructs STATIC ${HEADER_LIB} ${SOURCE_LIB})
+
+add_executable(main main.cpp)
+
+target_link_libraries(
+  main
+  PersistDataStructs
+)
