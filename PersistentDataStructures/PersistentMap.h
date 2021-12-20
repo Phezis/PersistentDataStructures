@@ -307,8 +307,12 @@ namespace pds {
     }
 
     template<typename Key, typename T, typename Hash>
-    inline void PersistentMap<Key, T, Hash>::swap(PersistentMap& other)
-    {
+    inline void PersistentMap<Key, T, Hash>::swap(PersistentMap& other) {
+        if (this != &other) {
+            std::swap(m_hash, other.m_hash);
+            std::swap(m_size, other.m_size);
+            std::swap(m_vector, other.m_vector);
+        }
     }
 
     template<typename Key, typename T, typename Hash>

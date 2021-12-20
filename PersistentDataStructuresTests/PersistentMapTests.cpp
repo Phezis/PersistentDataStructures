@@ -452,398 +452,80 @@ namespace {
 	*
 	*/
 
-//	TEST(PVectorSwap, SwapItself) {
-//		constexpr size_t size = 1 << 12;
-//		PersistentVector<size_t> pvector(size, 12345);
-//		pvector.swap(pvector);
-//		EXPECT_TRUE(pvector == pvector);
-//		std::swap(pvector, pvector);
-//		EXPECT_TRUE(pvector == pvector);
-//	}
-//
-//	TEST(PVectorSwap, SwapDifferent) {
-//		constexpr size_t size = 1 << 12;
-//		PersistentVector<size_t> pvector1(size, 12345);
-//		PersistentVector<size_t> pvector2(size, 54321);
-//		PersistentVector<size_t> pvector1_copy = pvector1;
-//		PersistentVector<size_t> pvector2_copy = pvector2;
-//		EXPECT_TRUE(pvector1 != pvector2);
-//		EXPECT_TRUE(pvector1 == pvector1_copy);
-//		EXPECT_TRUE(pvector2 == pvector2_copy);
-//		pvector1.swap(pvector2);
-//		EXPECT_TRUE(pvector1 != pvector2);
-//		EXPECT_TRUE(pvector2 == pvector1_copy);
-//		EXPECT_TRUE(pvector1 == pvector2_copy);
-//		std::swap(pvector1, pvector2);
-//		EXPECT_TRUE(pvector1 != pvector2);
-//		EXPECT_TRUE(pvector1 == pvector1_copy);
-//		EXPECT_TRUE(pvector2 == pvector2_copy);
-//	}
-//
-//
-//
-//	/*
-//	*	Popping
-//	*/
-//
-//	TEST(PVectorPopping, onlyOneElement) {
-//		PersistentVector<size_t> pvector;
-//		pvector = pvector.push_back(0);
-//		auto pvector1 = pvector.pop_back();
-//		EXPECT_EQ(pvector[0], 0);
-//		EXPECT_TRUE(pvector1.empty());
-//	}
-//
-//	TEST(PVectorPopping, SomeElementsInARow) {
-//		PersistentVector<size_t> pvector;
-//		constexpr size_t size = 6;
-//		for (size_t i = 0; i < size; ++i) {
-//			pvector = pvector.push_back(i);
-//			EXPECT_EQ(pvector[0], i);
-//			EXPECT_EQ(pvector.size(), 1);
-//			pvector = pvector.pop_back();
-//			EXPECT_TRUE(pvector.empty());
-//		}
-//	}
-//
-//	TEST(PVectorPopping, onlyOneLeaf) {
-//		constexpr size_t size = (1 << 5);
-//		std::vector<size_t> vector;
-//		for (size_t i = 0; i < size; ++i) {
-//			vector.push_back(i);
-//		}
-//		PersistentVector<size_t> pvector(vector.begin(), vector.end());
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector.size(), size - i);
-//			EXPECT_EQ(pvector[size - i - 1], size - i - 1);
-//			pvector = pvector.pop_back();
-//			EXPECT_EQ(pvector.size(), size - i - 1);
-//		}
-//		EXPECT_TRUE(pvector.empty());
-//	}
-//
-//	TEST(PVectorPopping, TwoLeafs) {
-//		constexpr size_t size = (1 << 5) + 1;
-//		std::vector<size_t> vector;
-//		for (size_t i = 0; i < size; ++i) {
-//			vector.push_back(i);
-//		}
-//		PersistentVector<size_t> pvector(vector.begin(), vector.end());
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector.size(), size - i);
-//			EXPECT_EQ(pvector[size - i - 1], size - i - 1);
-//			pvector = pvector.pop_back();
-//			EXPECT_EQ(pvector.size(), size - i - 1);
-//		}
-//		EXPECT_TRUE(pvector.empty());
-//	}
-//
-//	TEST(PVectorPopping, TwoLelves) {
-//		constexpr size_t size = (1 << 10) + 1;
-//		std::vector<size_t> vector;
-//		for (size_t i = 0; i < size; ++i) {
-//			vector.push_back(i);
-//		}
-//		PersistentVector<size_t> pvector(vector.begin(), vector.end());
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector.size(), size - i);
-//			EXPECT_EQ(pvector[size - i - 1], size - i - 1);
-//			pvector = pvector.pop_back();
-//			EXPECT_EQ(pvector.size(), size - i - 1);
-//		}
-//		EXPECT_TRUE(pvector.empty());
-//	}
-//
-//	TEST(PVectorPopping, Huge) {
-//		constexpr size_t size = (1 << 13) + 1;
-//		std::vector<size_t> vector;
-//		for (size_t i = 0; i < size; ++i) {
-//			vector.push_back(i);
-//		}
-//		PersistentVector<size_t> pvector(vector.begin(), vector.end());
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector.size(), size - i);
-//			EXPECT_EQ(pvector[size - i - 1], size - i - 1);
-//			pvector = pvector.pop_back();
-//			EXPECT_EQ(pvector.size(), size - i - 1);
-//		}
-//		EXPECT_TRUE(pvector.empty());
-//	}
-//
-//	TEST(PVectorPopping, BranchingVersioning) {
-//		PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5 };
-//		auto pvector1 = pvector.pop_back();
-//		auto pvector2 = pvector.push_back(6);
-//		auto pvector3 = pvector2.pop_back();
-//		PersistentVector<size_t> pvector4 = { 1, 2, 3, 4 };
-//		PersistentVector<size_t> pvector5 = { 1, 2, 3, 4, 5, 6 };
-//		EXPECT_TRUE(pvector1 == pvector4);
-//		EXPECT_TRUE(pvector2 == pvector5);
-//		EXPECT_TRUE(pvector3 == pvector);
-//	}
-//
-//
-//	/*
-//	*	Resize
-//	*/
-//
-//	TEST(PVectorResize, EmptyToEmpty) {
-//		PersistentVector<size_t> pvector;
-//		EXPECT_TRUE(pvector.empty());
-//		auto pvector1 = pvector.resize(0);
-//		EXPECT_TRUE(pvector.empty());
-//		EXPECT_TRUE(pvector1.empty());
-//	}
-//
-//	TEST(PVectorResize, EmptyToOne) {
-//		PersistentVector<size_t> pvector;
-//		EXPECT_TRUE(pvector.empty());
-//		auto pvector1 = pvector.resize(1, 1);
-//		EXPECT_TRUE(pvector.empty());
-//		EXPECT_EQ(pvector1.size(), 1);
-//		EXPECT_EQ(pvector1[0], 1);
-//	}
-//
-//	TEST(PVectorResize, EmptyToSome) {
-//		constexpr size_t size = 10;
-//		PersistentVector<size_t> pvector;
-//		EXPECT_TRUE(pvector.empty());
-//		auto pvector1 = pvector.resize(size, 12345);
-//		EXPECT_TRUE(pvector.empty());
-//		EXPECT_EQ(pvector1.size(), size);
-//		for (auto it = pvector1.cbegin(); it != pvector1.cend(); ++it) {
-//			EXPECT_EQ(it->second, 12345);
-//		}
-//	}
-//
-//	TEST(PVectorResize, EmptyToHuge) {
-//		constexpr size_t size = 1 << 13;
-//		PersistentVector<size_t> pvector;
-//		EXPECT_TRUE(pvector.empty());
-//		auto pvector1 = pvector.resize(size, 12345);
-//		EXPECT_TRUE(pvector.empty());
-//		EXPECT_EQ(pvector1.size(), size);
-//		for (auto it = pvector1.cbegin(); it != pvector1.cend(); ++it) {
-//			EXPECT_EQ(it->second, 12345);
-//		}
-//	}
-//
-//	TEST(PVectorResize, OneToEmpty) {
-//		PersistentVector<size_t> pvector = { 0 };
-//		auto pvector1 = pvector.resize(0);
-//		EXPECT_EQ(pvector.size(), 1);
-//		EXPECT_TRUE(pvector1.empty());
-//	}
-//
-//	TEST(PVectorResize, OneToOne) {
-//		PersistentVector<size_t> pvector = { 0 };
-//		auto pvector1 = pvector.resize(1, 1);
-//		EXPECT_EQ(pvector.size(), 1);
-//		EXPECT_EQ(pvector1.size(), 1);
-//		EXPECT_EQ(pvector1[0], 0);
-//	}
-//
-//	TEST(PVectorResize, OneToSome) {
-//		PersistentVector<size_t> pvector = { 0 };
-//		constexpr size_t size = 10;
-//		auto pvector1 = pvector.resize(size, 12345);
-//		EXPECT_EQ(pvector.size(), 1);
-//		EXPECT_EQ(pvector1.size(), size);
-//		EXPECT_EQ(pvector1.size(), size);
-//		EXPECT_EQ(pvector1[0], 0);
-//		for (auto it = pvector1.cbegin() + 1; it != pvector1.cend(); ++it) {
-//			EXPECT_EQ(it->second, 12345);
-//		}
-//	}
-//
-//	TEST(PVectorResize, OneToHuge) {
-//		PersistentVector<size_t> pvector = { 0 };
-//		constexpr size_t size = 1 << 13;
-//		auto pvector1 = pvector.resize(size, 12345);
-//		EXPECT_EQ(pvector.size(), 1);
-//		EXPECT_EQ(pvector1.size(), size);
-//		EXPECT_EQ(pvector1.size(), size);
-//		EXPECT_EQ(pvector1[0], 0);
-//		for (auto it = pvector1.cbegin() + 1; it != pvector1.cend(); ++it) {
-//			EXPECT_EQ(it->second, 12345);
-//		}
-//	}
-//
-//	TEST(PVectorResize, SomeToEmpty) {
-//		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
-//		auto pvector1 = pvector.resize(0);
-//		EXPECT_EQ(pvector.size(), 6);
-//		EXPECT_TRUE(pvector1.empty());
-//	}
-//
-//	TEST(PVectorResize, SomeToOne) {
-//		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
-//		auto pvector1 = pvector.resize(1, 1);
-//		EXPECT_EQ(pvector.size(), 6);
-//		EXPECT_EQ(pvector1.size(), 1);
-//		EXPECT_EQ(pvector1[0], 0);
-//	}
-//
-//	TEST(PVectorResize, SomeToSomeLess) {
-//		constexpr size_t size = 4;
-//		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
-//		auto pvector1 = pvector.resize(size, 1);
-//		EXPECT_EQ(pvector.size(), 6);
-//		EXPECT_EQ(pvector1.size(), size);
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector1[i], i);
-//		}
-//	}
-//
-//	TEST(PVectorResize, SomeToSomeEq) {
-//		constexpr size_t size = 6;
-//		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
-//		auto pvector1 = pvector.resize(size, 1);
-//		EXPECT_EQ(pvector.size(), 6);
-//		EXPECT_EQ(pvector1.size(), size);
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector1[i], i);
-//		}
-//		EXPECT_EQ(pvector, pvector1);
-//	}
-//
-//	TEST(PVectorResize, SomeToSomeBigger) {
-//		constexpr size_t size = 10;
-//		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
-//		auto pvector1 = pvector.resize(size, 12345);
-//		EXPECT_EQ(pvector.size(), 6);
-//		EXPECT_EQ(pvector1.size(), size);
-//		for (size_t i = 0; i < 6; ++i) {
-//			EXPECT_EQ(pvector1[i], i);
-//		}
-//		for (size_t i = 6; i < size; ++i) {
-//			EXPECT_EQ(pvector1[i], 12345);
-//		}
-//	}
-//
-//	TEST(PVectorResize, SomeToHuge) {
-//		constexpr size_t size = 1 << 13;
-//		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
-//		auto pvector1 = pvector.resize(size, 12345);
-//		EXPECT_EQ(pvector.size(), 6);
-//		EXPECT_EQ(pvector1.size(), size);
-//		for (size_t i = 0; i < 6; ++i) {
-//			EXPECT_EQ(pvector1[i], i);
-//		}
-//		for (size_t i = 6; i < size; ++i) {
-//			EXPECT_EQ(pvector1[i], 12345);
-//		}
-//	}
-//
-//	TEST(PVectorResize, HugeToEmpty) {
-//		constexpr size_t size = 1 << 13;
-//		PersistentVector<size_t> pvector(size, 0);
-//		auto pvector1 = pvector.resize(0);
-//		EXPECT_EQ(pvector.size(), size);
-//		EXPECT_TRUE(pvector1.empty());
-//	}
-//
-//	TEST(PVectorResize, HugeToOne) {
-//		constexpr size_t size = 1 << 13;
-//		PersistentVector<size_t> pvector(size, 0);
-//		auto pvector1 = pvector.resize(1, 1);
-//		EXPECT_EQ(pvector.size(), size);
-//		EXPECT_EQ(pvector1.size(), 1);
-//		EXPECT_EQ(pvector1[0], 0);
-//	}
-//
-//	TEST(PVectorResize, HugeToSome) {
-//		constexpr size_t size = 1 << 13;
-//		constexpr size_t size1 = 4;
-//		PersistentVector<size_t> pvector(size, 0);
-//		auto pvector1 = pvector.resize(size1, 1);
-//		EXPECT_EQ(pvector.size(), size);
-//		EXPECT_EQ(pvector1.size(), size1);
-//		for (size_t i = 0; i < size1; ++i) {
-//			EXPECT_EQ(pvector1[i], 0);
-//		}
-//	}
-//
-//	TEST(PVectorResize, HugeToHugeLess) {
-//		constexpr size_t size = 1 << 13;
-//		constexpr size_t size1 = 1 << 12;
-//		PersistentVector<size_t> pvector(size, 0);
-//		auto pvector1 = pvector.resize(size1, 1);
-//		EXPECT_EQ(pvector.size(), size);
-//		EXPECT_EQ(pvector1.size(), size1);
-//		for (size_t i = 0; i < size1; ++i) {
-//			EXPECT_EQ(pvector1[i], 0);
-//		}
-//	}
-//
-//	TEST(PVectorResize, HugeToHugeEq) {
-//		constexpr size_t size = 1 << 13;
-//		constexpr size_t size1 = 1 << 13;
-//		PersistentVector<size_t> pvector(size, 0);
-//		auto pvector1 = pvector.resize(size1, 1);
-//		EXPECT_EQ(pvector.size(), size);
-//		EXPECT_EQ(pvector1.size(), size1);
-//		for (size_t i = 0; i < size1; ++i) {
-//			EXPECT_EQ(pvector1[i], 0);
-//		}
-//		EXPECT_EQ(pvector, pvector1);
-//	}
-//
-//	TEST(PVectorResize, HugeToHugeBigger) {
-//		constexpr size_t size = 1 << 13;
-//		constexpr size_t size1 = 1 << 14;
-//		PersistentVector<size_t> pvector(size, 0);
-//		auto pvector1 = pvector.resize(size1, 1);
-//		EXPECT_EQ(pvector.size(), size);
-//		EXPECT_EQ(pvector1.size(), size1);
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector1[i], 0);
-//		}
-//		for (size_t i = size; i < size1; ++i) {
-//			EXPECT_EQ(pvector1[i], 1);
-//		}
-//	}
-//
-//
-//	/*
-//	*	Clear
-//	*/
-//
-//	TEST(PVectorClear, Empty) {
-//		PersistentVector<size_t> pvector;
-//		EXPECT_TRUE(pvector.empty());
-//		auto pvector1 = pvector.resize(0);
-//		EXPECT_TRUE(pvector.empty());
-//		EXPECT_TRUE(pvector1.empty());
-//	}
-//
-//	TEST(PVectorClear, One) {
-//		PersistentVector<size_t> pvector = { 0 };
-//		auto pvector1 = pvector.resize(0);
-//		EXPECT_EQ(pvector.size(), 1);
-//		EXPECT_TRUE(pvector1.empty());
-//	}
-//
-//	TEST(PVectorClear, Some) {
-//		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
-//		auto pvector1 = pvector.resize(0);
-//		EXPECT_EQ(pvector.size(), 6);
-//		EXPECT_TRUE(pvector1.empty());
-//	}
-//
-//	TEST(PVectorClear, Huge) {
-//		constexpr size_t size = 1 << 13;
-//		PersistentVector<size_t> pvector(size, 0);
-//		auto pvector1 = pvector.resize(0);
-//		EXPECT_EQ(pvector.size(), size);
-//		EXPECT_TRUE(pvector1.empty());
-//	}
-//
-//
-//	/*
-//	*	UNDO & REDO
-//	*/
-//
+	TEST(PMapSwap, SwapItself) {
+		PersistentMap<size_t, size_t, MyHash> pmap = { { 0, 0 }, { 1, 2 }, { 2, 4 } };
+		pmap.swap(pmap);
+		EXPECT_TRUE(pmap == pmap);
+		std::swap(pmap, pmap);
+		EXPECT_TRUE(pmap == pmap);
+	}
+
+	TEST(PMapSwap, SwapDifferent) {
+		PersistentMap<size_t, size_t, MyHash> pmap1 = { { 0, 0 }, { 1, 2 }, { 2, 4 } };
+		PersistentMap<size_t, size_t, MyHash> pmap2 = { { 0, 4 }, { 1, 2 }, { 2, 0 } };
+		PersistentMap<size_t, size_t, MyHash> pmap1_copy = pmap1;
+		PersistentMap<size_t, size_t, MyHash> pmap2_copy = pmap2;
+		EXPECT_TRUE(pmap1 != pmap2);
+		EXPECT_TRUE(pmap1 == pmap1_copy);
+		EXPECT_TRUE(pmap2 == pmap2_copy);
+		pmap1.swap(pmap2);
+		EXPECT_TRUE(pmap1 != pmap2);
+		EXPECT_TRUE(pmap2 == pmap1_copy);
+		EXPECT_TRUE(pmap1 == pmap2_copy);
+		std::swap(pmap1, pmap2);
+		EXPECT_TRUE(pmap1 != pmap2);
+		EXPECT_TRUE(pmap1 == pmap1_copy);
+		EXPECT_TRUE(pmap2 == pmap2_copy);
+	}
+
+
+	/*
+	*	Clear
+	*/
+
+	TEST(PMapClear, Empty) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		EXPECT_TRUE(pmap.empty());
+		auto pmap1 = pmap.clear();
+		EXPECT_TRUE(pmap.empty());
+		EXPECT_TRUE(pmap1.empty());
+	}
+
+	TEST(PMapClear, One) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		pmap = pmap.set(123, 123);
+		auto pmap1 = pmap.clear();
+		EXPECT_EQ(pmap.size(), 1);
+		EXPECT_TRUE(pmap1.empty());
+	}
+
+	TEST(PMapClear, Some) {
+		constexpr size_t size = 6;
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		for (size_t i = 0; i < size; ++i) {
+			pmap = pmap.set(i, i);
+		}
+		auto pmap1 = pmap.clear();
+		EXPECT_EQ(pmap.size(), size);
+		EXPECT_TRUE(pmap1.empty());
+	}
+
+	TEST(PMapClear, Huge) {
+		constexpr size_t size = 1 << 13;
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		for (size_t i = 0; i < size; ++i) {
+			pmap = pmap.set(i, i);
+		}
+		auto pmap1 = pmap.clear();
+		EXPECT_EQ(pmap.size(), size);
+		EXPECT_TRUE(pmap1.empty());
+	}
+
+
+	/*
+	*	UNDO & REDO
+	*/
+
 //	TEST(PVectorUndoRedo, linear) {
 //		PersistentVector<size_t> pvector;
 //		constexpr size_t size = (1 << 5);
