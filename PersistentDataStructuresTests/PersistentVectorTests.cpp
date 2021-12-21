@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include <PersistentVector.h>
+#include <thread>
+#include <chrono>
 
 
 namespace {
@@ -265,7 +267,7 @@ namespace {
 	}
 
 	TEST(PVectorSetting, Huge) {
-		constexpr size_t size = (1 << 13) + 1;
+		constexpr size_t size = (1 << 15) + 1;
 		PersistentVector<size_t> pvector(size, 0);
 		for (size_t i = 0; i < pvector.size(); ++i) {
 			pvector = pvector.set(i, i + 1);
@@ -326,7 +328,6 @@ namespace {
 	}
 
 	TEST(PVectorIterator, Huge) {
-		constexpr size_t size = (1 << 13) + 1;
 		PersistentVector<size_t> pvector(10, 12345);
 		// const iterator
 		{
@@ -590,7 +591,7 @@ namespace {
 	}
 
 	TEST(PVectorComparation, SameLength) {
-		constexpr size_t size = (1 << 13) + 1;
+		constexpr size_t size = (1 << 15) + 1;
 		PersistentVector<size_t> pvector(size, 12345);
 		PersistentVector<size_t> pvector1(size, 12345);
 		EXPECT_TRUE(pvector == pvector1);
@@ -613,7 +614,7 @@ namespace {
 	}
 
 	TEST(PVectorComparation, DifferentLength) {
-		constexpr size_t size = (1 << 13) + 1;
+		constexpr size_t size = (1 << 15) + 1;
 		PersistentVector<size_t> pvector(size, 12345);
 		PersistentVector<size_t> pvector1(size - 1, 12345);
 		EXPECT_FALSE(pvector == pvector1);
@@ -740,7 +741,7 @@ namespace {
 	}
 
 	TEST(PVectorPopping, Huge) {
-		constexpr size_t size = (1 << 13) + 1;
+		constexpr size_t size = (1 << 15) + 1;
 		std::vector<size_t> vector;
 		for (size_t i = 0; i < size; ++i) {
 			vector.push_back(i);
@@ -802,7 +803,7 @@ namespace {
 	}
 
 	TEST(PVectorResize, EmptyToHuge) {
-		constexpr size_t size = 1 << 13;
+		constexpr size_t size = 1 << 15;
 		PersistentVector<size_t> pvector;
 		EXPECT_TRUE(pvector.empty());
 		auto pvector1 = pvector.resize(size, 12345);
@@ -843,7 +844,7 @@ namespace {
 
 	TEST(PVectorResize, OneToHuge) {
 		PersistentVector<size_t> pvector = { 0 };
-		constexpr size_t size = 1 << 13;
+		constexpr size_t size = 1 << 15;
 		auto pvector1 = pvector.resize(size, 12345);
 		EXPECT_EQ(pvector.size(), 1);
 		EXPECT_EQ(pvector1.size(), size);
@@ -907,7 +908,7 @@ namespace {
 	}
 
 	TEST(PVectorResize, SomeToHuge) {
-		constexpr size_t size = 1 << 13;
+		constexpr size_t size = 1 << 15;
 		PersistentVector<size_t> pvector = { 0, 1, 2, 3, 4, 5 };
 		auto pvector1 = pvector.resize(size, 12345);
 		EXPECT_EQ(pvector.size(), 6);
@@ -921,7 +922,7 @@ namespace {
 	}
 
 	TEST(PVectorResize, HugeToEmpty) {
-		constexpr size_t size = 1 << 13;
+		constexpr size_t size = 1 << 15;
 		PersistentVector<size_t> pvector(size, 0);
 		auto pvector1 = pvector.resize(0);
 		EXPECT_EQ(pvector.size(), size);
@@ -929,7 +930,7 @@ namespace {
 	}
 
 	TEST(PVectorResize, HugeToOne) {
-		constexpr size_t size = 1 << 13;
+		constexpr size_t size = 1 << 15;
 		PersistentVector<size_t> pvector(size, 0);
 		auto pvector1 = pvector.resize(1, 1);
 		EXPECT_EQ(pvector.size(), size);
@@ -938,7 +939,7 @@ namespace {
 	}
 
 	TEST(PVectorResize, HugeToSome) {
-		constexpr size_t size = 1 << 13;
+		constexpr size_t size = 1 << 15;
 		constexpr size_t size1 = 4;
 		PersistentVector<size_t> pvector(size, 0);
 		auto pvector1 = pvector.resize(size1, 1);
@@ -950,7 +951,7 @@ namespace {
 	}
 
 	TEST(PVectorResize, HugeToHugeLess) {
-		constexpr size_t size = 1 << 13;
+		constexpr size_t size = 1 << 15;
 		constexpr size_t size1 = 1 << 12;
 		PersistentVector<size_t> pvector(size, 0);
 		auto pvector1 = pvector.resize(size1, 1);
@@ -962,8 +963,8 @@ namespace {
 	}
 
 	TEST(PVectorResize, HugeToHugeEq) {
-		constexpr size_t size = 1 << 13;
-		constexpr size_t size1 = 1 << 13;
+		constexpr size_t size = 1 << 15;
+		constexpr size_t size1 = 1 << 15;
 		PersistentVector<size_t> pvector(size, 0);
 		auto pvector1 = pvector.resize(size1, 1);
 		EXPECT_EQ(pvector.size(), size);
@@ -975,8 +976,8 @@ namespace {
 	}
 
 	TEST(PVectorResize, HugeToHugeBigger) {
-		constexpr size_t size = 1 << 13;
-		constexpr size_t size1 = 1 << 14;
+		constexpr size_t size = 1 << 15;
+		constexpr size_t size1 = 1 << 16;
 		PersistentVector<size_t> pvector(size, 0);
 		auto pvector1 = pvector.resize(size1, 1);
 		EXPECT_EQ(pvector.size(), size);
@@ -1017,7 +1018,7 @@ namespace {
 	}
 
 	TEST(PVectorClear, Huge) {
-		constexpr size_t size = 1 << 13;
+		constexpr size_t size = 1 << 15;
 		PersistentVector<size_t> pvector(size, 0);
 		auto pvector1 = pvector.resize(0);
 		EXPECT_EQ(pvector.size(), size);
@@ -1053,7 +1054,7 @@ namespace {
 
 	TEST(PVectorUndoRedo, linearHuge) {
 		PersistentVector<size_t> pvector;
-		constexpr size_t size = (1 << 13);
+		constexpr size_t size = (1 << 15);
 		for (size_t i = 0; i < size; ++i) {
 			pvector = pvector.push_back(i);
 		}
@@ -1076,7 +1077,7 @@ namespace {
 
 	TEST(PVectorUndoRedo, linearHugeDestruction) {
 		PersistentVector<size_t> pvector;
-		constexpr size_t size = (1 << 13);
+		constexpr size_t size = (1 << 15);
 		for (size_t i = 0; i < size; ++i) {
 			pvector = pvector.push_back(i);
 		}
@@ -1105,7 +1106,7 @@ namespace {
 
 	TEST(PVectorUndoRedo, NotLinearWithUndoRedo) {
 		PersistentVector<size_t> pvector;
-		constexpr size_t size = (1 << 13);
+		constexpr size_t size = (1 << 15);
 		for (size_t i = 0; i < size; i += 2) {
 			pvector = pvector.push_back(i);
 			pvector = pvector.push_back(i * 2);
@@ -1123,7 +1124,7 @@ namespace {
 
 	TEST(PVectorUndoRedo, NotLinearWithUndoRedoTwo) {
 		PersistentVector<size_t> pvector;
-		constexpr size_t size = (1 << 13);
+		constexpr size_t size = (1 << 15);
 		for (size_t i = 0; i < size; i += 2) {
 			pvector = pvector.push_back(i);
 			pvector = pvector.push_back(i * 2);
@@ -1172,5 +1173,88 @@ namespace {
 		pvector = pvector.undo();
 		EXPECT_TRUE(pvector.canUndo());
 		EXPECT_TRUE(pvector.canRedo());
+	}
+
+
+
+	/*
+	*	Concurrency
+	*/
+
+	namespace {
+		void PushBackFunc(PersistentVector<size_t>& pvector) {
+			auto id = std::hash<std::thread::id>{}(std::this_thread::get_id());
+			auto myPvector = pvector.push_back(id);
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			myPvector = myPvector.push_back(id + 1);
+			for (size_t i = 0; i < 5; ++i) {
+				EXPECT_EQ(myPvector[i], i + 1);
+			}
+			for (size_t i = 0; i < 2; ++i) {
+				EXPECT_EQ(myPvector[i + 5], id + i);
+			}
+		}
+
+		TEST(PVectorConcurrency, PushBack) {
+			constexpr size_t repeats_number = 100;
+			constexpr size_t threads_number = 16;
+			PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5 };
+			std::thread threads[threads_number];
+			for (size_t repeat = 0; repeat < repeats_number; ++repeat) {
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i] = std::thread(&PushBackFunc, std::ref(pvector));
+				}
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i].join();
+				}
+			}
+		}
+	}
+
+	namespace {
+		void UndoRedoFunc(PersistentVector<size_t>& pvector) {
+			auto id = std::hash<std::thread::id>{}(std::this_thread::get_id());
+			auto myPvector = pvector.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.redo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.redo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.redo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.push_back(id);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPvector = myPvector.push_back(id + 1);
+			for (size_t i = 0; i < 3; ++i) {
+				EXPECT_EQ(myPvector[i], i + 1);
+			}
+			for (size_t i = 0; i < 2; ++i) {
+				EXPECT_EQ(myPvector[i + 3], id + i);
+			}
+		}
+
+		TEST(PVectorConcurrency, UndoRedo) {
+			constexpr size_t repeats_number = 100;
+			constexpr size_t threads_number = 16;
+			PersistentVector<size_t> pvector;
+			pvector = pvector.push_back(1).push_back(2).push_back(3).push_back(4).push_back(5);
+			std::thread threads[threads_number];
+			for (size_t repeat = 0; repeat < repeats_number; ++repeat) {
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i] = std::thread(&UndoRedoFunc, std::ref(pvector));
+				}
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i].join();
+				}
+			}
+		}
 	}
 }
