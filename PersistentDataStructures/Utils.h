@@ -3,6 +3,8 @@
 #include <iterator>
 
 namespace pds {
+	using version_t = std::uint64_t;
+
 	template<typename ...Types>
 	using void_t = void;
 
