@@ -13,7 +13,7 @@ add_executable(PersistentDataStructures_test ${SOURCE_EXE})
 message(${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}/../PersistentDataStructures)
+	"${CMAKE_CURRENT_SOURCE_DIR}/../PersistentDataStructures/include")
 
 target_link_libraries(
   PersistentDataStructures_test
