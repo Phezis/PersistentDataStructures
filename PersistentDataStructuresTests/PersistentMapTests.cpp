@@ -733,81 +733,81 @@ namespace {
 	*	Concurrency
 	*/
 
-//	namespace {
-//		void PushBackFunc(PersistentVector<size_t>& pvector) {
-//			auto id = std::hash<std::thread::id>{}(std::this_thread::get_id());
-//			auto myPvector = pvector.push_back(id);
-//			std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//			myPvector = myPvector.push_back(id + 1);
-//			for (size_t i = 0; i < 5; ++i) {
-//				EXPECT_EQ(myPvector[i], i + 1);
-//			}
-//			for (size_t i = 0; i < 2; ++i) {
-//				EXPECT_EQ(myPvector[i + 5], id + i);
-//			}
-//		}
-//
-//		TEST(PVectorConcurrency, PushBack) {
-//			constexpr size_t repeats_number = 100;
-//			constexpr size_t threads_number = 16;
-//			PersistentVector<size_t> pvector = { 1, 2, 3, 4, 5 };
-//			std::thread threads[threads_number];
-//			for (size_t repeat = 0; repeat < repeats_number; ++repeat) {
-//				for (size_t i = 0; i < threads_number; ++i) {
-//					threads[i] = std::thread(&PushBackFunc, std::ref(pvector));
-//				}
-//				for (size_t i = 0; i < threads_number; ++i) {
-//					threads[i].join();
-//				}
-//			}
-//		}
-//	}
-//
-//	namespace {
-//		void UndoRedoFunc(PersistentVector<size_t>& pvector) {
-//			auto id = std::hash<std::thread::id>{}(std::this_thread::get_id());
-//			auto myPvector = pvector.undo();
-//			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-//			myPvector = myPvector.undo();
-//			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-//			myPvector = myPvector.undo();
-//			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-//			myPvector = myPvector.undo();
-//			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-//			myPvector = myPvector.undo();
-//			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-//			myPvector = myPvector.redo();
-//			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-//			myPvector = myPvector.redo();
-//			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-//			myPvector = myPvector.redo();
-//			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-//			myPvector = myPvector.push_back(id);
-//			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-//			myPvector = myPvector.push_back(id + 1);
-//			for (size_t i = 0; i < 3; ++i) {
-//				EXPECT_EQ(myPvector[i], i + 1);
-//			}
-//			for (size_t i = 0; i < 2; ++i) {
-//				EXPECT_EQ(myPvector[i + 3], id + i);
-//			}
-//		}
-//
-//		TEST(PVectorConcurrency, UndoRedo) {
-//			constexpr size_t repeats_number = 100;
-//			constexpr size_t threads_number = 16;
-//			PersistentMap<size_t, size_t, MyHash> pmap;
-//			pvector = pvector.push_back(1).push_back(2).push_back(3).push_back(4).push_back(5);
-//			std::thread threads[threads_number];
-//			for (size_t repeat = 0; repeat < repeats_number; ++repeat) {
-//				for (size_t i = 0; i < threads_number; ++i) {
-//					threads[i] = std::thread(&UndoRedoFunc, std::ref(pvector));
-//				}
-//				for (size_t i = 0; i < threads_number; ++i) {
-//					threads[i].join();
-//				}
-//			}
-//		}
-//	}
+	namespace {
+		void AddNewKeyFunc(PersistentMap<size_t, size_t, MyHash>& pmap) {
+			auto id = std::hash<std::thread::id>{}(std::this_thread::get_id());
+			auto myPmap = pmap.set(0, id);
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			myPmap = myPmap.set(1, id + 1);
+			for (size_t i = 0; i < 2; ++i) {
+				EXPECT_EQ(myPmap[i], id + i);
+			}
+			for (size_t i = 3; i < 5; ++i) {
+				EXPECT_EQ(myPmap[i], i + 1);
+			}
+		}
+
+		TEST(PMapConcurrency, AddNewKey) {
+			constexpr size_t repeats_number = 100;
+			constexpr size_t threads_number = 16;
+			PersistentMap<size_t, size_t, MyHash> pmap = { { 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 4 }, { 4, 5 } };
+			std::thread threads[threads_number];
+			for (size_t repeat = 0; repeat < repeats_number; ++repeat) {
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i] = std::thread(&AddNewKeyFunc, std::ref(pmap));
+				}
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i].join();
+				}
+			}
+		}
+	}
+
+	namespace {
+		void UndoRedoFunc(PersistentMap<size_t, size_t, MyHash>& pmap) {
+			auto id = std::hash<std::thread::id>{}(std::this_thread::get_id());
+			auto myPmap = pmap.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPmap = myPmap.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPmap = myPmap.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPmap = myPmap.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPmap = myPmap.undo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPmap = myPmap.redo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPmap = myPmap.redo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPmap = myPmap.redo();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPmap = myPmap.set(0, id);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			myPmap = myPmap.set(1, id + 1);
+			for (size_t i = 0; i < 2; ++i) {
+				EXPECT_EQ(myPmap[i], id + i);
+			}
+			for (size_t i = 2; i < 3; ++i) {
+				EXPECT_EQ(myPmap[i], i + 1);
+			}
+		}
+
+		TEST(PMapConcurrency, UndoRedo) {
+			constexpr size_t repeats_number = 100;
+			constexpr size_t threads_number = 16;
+			PersistentMap<size_t, size_t, MyHash> pmap;
+			pmap = pmap.set(0, 1).set(1, 2).set(2, 3).set(3, 4).set(4, 5);
+			std::thread threads[threads_number];
+			for (size_t repeat = 0; repeat < repeats_number; ++repeat) {
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i] = std::thread(&UndoRedoFunc, std::ref(pmap));
+				}
+				for (size_t i = 0; i < threads_number; ++i) {
+					threads[i].join();
+				}
+			}
+		}
+	}
 
 }
