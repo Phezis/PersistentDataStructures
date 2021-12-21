@@ -339,7 +339,7 @@ namespace pds {
     inline PersistentMap<Key, T, Hash> PersistentMap<Key, T, Hash>::undo() const {
         auto outVector = std::make_shared<PersistentVector<PersistentVector<std::pair<Key, T>>>>(m_vector->undo());
         std::size_t newSize = 0;
-        for (auto it = outVector.cbegin(); it != outVector.cend(); ++it) {
+        for (auto it = outVector->cbegin(); it != outVector->cend(); ++it) {
             newSize += it->size();
         }
         return PersistentMap<Key, T, Hash>(m_hash, newSize, outVector);
@@ -349,7 +349,7 @@ namespace pds {
     inline PersistentMap<Key, T, Hash> PersistentMap<Key, T, Hash>::redo() const {
         auto outVector = std::make_shared<PersistentVector<PersistentVector<std::pair<Key, T>>>>(m_vector->redo());
         std::size_t newSize = 0;
-        for (auto it = outVector.cbegin(); it != outVector.cend(); ++it) {
+        for (auto it = outVector->cbegin(); it != outVector->cend(); ++it) {
             newSize += it->size();
         }
         return PersistentMap<Key, T, Hash>(m_hash, newSize, outVector);
@@ -373,7 +373,7 @@ namespace pds {
         auto inner = std::find_if((*m_vector)[hash].cbegin(), (*m_vector)[hash].cend(), [&key](const std::pair<Key, T>& wrapper) { return key == wrapper.first; });
         return inner == (*m_vector)[hash].cend() ? 
             const_iterator(m_vector->cend(), m_vector->cend(), inner) :
-            const_iterator(m_vector->cend(), PersistentVector<PersistentVector<std::pair<Key, T>>>::const_iterator(hash, m_vector.get()), inner);
+            const_iterator(m_vector->cend(), typename PersistentVector<PersistentVector<std::pair<Key, T>>>::const_iterator(hash, m_vector.get()), inner);
     }
 
     template<typename Key, typename T, typename Hash>

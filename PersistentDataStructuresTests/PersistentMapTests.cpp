@@ -568,157 +568,171 @@ namespace {
 	*	UNDO & REDO
 	*/
 
-//	TEST(PVectorUndoRedo, linear) {
-//		PersistentVector<size_t> pvector;
-//		constexpr size_t size = (1 << 5);
-//		for (size_t i = 0; i < size; ++i) {
-//			pvector = pvector.push_back(i);
-//		}
-//		auto pvector1 = pvector;
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector1.size(), size - i);
-//			EXPECT_EQ(pvector1.back(), size - i - 1);
-//			pvector1 = pvector1.undo();
-//			EXPECT_EQ(pvector1.size(), size - i - 1);
-//		}
-//		EXPECT_TRUE(pvector1.empty());
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector1.size(), i);
-//			pvector1 = pvector1.redo();
-//			EXPECT_EQ(pvector1.back(), i);
-//			EXPECT_EQ(pvector1.size(), i + 1);
-//		}
-//	}
-//
-//	TEST(PVectorUndoRedo, linearHuge) {
-//		PersistentVector<size_t> pvector;
-//		constexpr size_t size = (1 << 13);
-//		for (size_t i = 0; i < size; ++i) {
-//			pvector = pvector.push_back(i);
-//		}
-//		auto pvector1 = pvector;
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector1.size(), size - i);
-//			EXPECT_EQ(pvector1.back(), size - i - 1);
-//			pvector1 = pvector1.undo();
-//			EXPECT_EQ(pvector1.size(), size - i - 1);
-//		}
-//		EXPECT_TRUE(pvector1.empty());
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector1.size(), i);
-//			pvector1 = pvector1.redo();
-//			EXPECT_EQ(pvector1.back(), i);
-//			EXPECT_EQ(pvector1.size(), i + 1);
-//		}
-//		EXPECT_EQ(pvector, pvector1);
-//	}
-//
-//	TEST(PVectorUndoRedo, linearHugeDestruction) {
-//		PersistentVector<size_t> pvector;
-//		constexpr size_t size = (1 << 13);
-//		for (size_t i = 0; i < size; ++i) {
-//			pvector = pvector.push_back(i);
-//		}
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector.size(), size - i);
-//			EXPECT_EQ(pvector.back(), size - i - 1);
-//			pvector = pvector.undo();
-//			EXPECT_EQ(pvector.size(), size - i - 1);
-//		}
-//		pvector = pvector.push_back(0);
-//	}
-//
-//	TEST(PVectorUndoRedo, LinearWithUndoRedo) {
-//		PersistentVector<size_t> pvector;
-//		constexpr size_t size = (1 << 5);
-//		for (size_t i = 0; i < size; ++i) {
-//			pvector = pvector.push_back(i);
-//			pvector = pvector.undo();
-//			EXPECT_EQ(pvector.size(), i);
-//			EXPECT_TRUE(pvector.empty() || pvector.back() == i - 1);
-//			pvector = pvector.redo();
-//			EXPECT_EQ(pvector.size(), i + 1);
-//			EXPECT_EQ(pvector.back(), i);
-//		}
-//	}
-//
-//	TEST(PVectorUndoRedo, NotLinearWithUndoRedo) {
-//		PersistentVector<size_t> pvector;
-//		constexpr size_t size = (1 << 13);
-//		for (size_t i = 0; i < size; i += 2) {
-//			pvector = pvector.push_back(i);
-//			pvector = pvector.push_back(i * 2);
-//			pvector = pvector.undo();
-//			pvector = pvector.push_back(i + 1);
-//			pvector = pvector.undo();
-//			pvector = pvector.redo();
-//			EXPECT_EQ(pvector.back(), i + 1);
-//		}
-//		EXPECT_EQ(pvector.size(), size);
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector[i], i);
-//		}
-//	}
-//
-//	TEST(PVectorUndoRedo, NotLinearWithUndoRedoTwo) {
-//		PersistentVector<size_t> pvector;
-//		constexpr size_t size = (1 << 13);
-//		for (size_t i = 0; i < size; i += 2) {
-//			pvector = pvector.push_back(i);
-//			pvector = pvector.push_back(i * 2);
-//			pvector = pvector.push_back(i * 3);
-//			pvector = pvector.undo();
-//			pvector = pvector.undo();
-//			pvector = pvector.push_back(i + 1);
-//			pvector = pvector.undo();
-//			pvector = pvector.redo();
-//			EXPECT_EQ(pvector.back(), i + 1);
-//		}
-//		EXPECT_EQ(pvector.size(), size);
-//		for (size_t i = 0; i < size; ++i) {
-//			EXPECT_EQ(pvector[i], i);
-//		}
-//	}
-//
-//	/*
-//	*	canUndo & canRedo
-//	*/
-//
-//	TEST(PVectorCanUndoRedo, NewCreated) {
-//		PersistentVector<size_t> pvector;
-//		EXPECT_FALSE(pvector.canUndo());
-//		EXPECT_FALSE(pvector.canRedo());
-//	}
-//
-//	TEST(PVectorCanUndoRedo, CanUndoCantRedo) {
-//		PersistentVector<size_t> pvector;
-//		pvector = pvector.push_back(0);
-//		EXPECT_TRUE(pvector.canUndo());
-//		EXPECT_FALSE(pvector.canRedo());
-//	}
-//
-//	TEST(PVectorCanUndoRedo, CantUndoCanRedo) {
-//		PersistentVector<size_t> pvector;
-//		pvector = pvector.push_back(0);
-//		pvector = pvector.undo();
-//		EXPECT_FALSE(pvector.canUndo());
-//		EXPECT_TRUE(pvector.canRedo());
-//	}
-//
-//	TEST(PVectorCanUndoRedo, CanUndoCanRedo) {
-//		PersistentVector<size_t> pvector;
-//		pvector = pvector.push_back(0).push_back(1);
-//		pvector = pvector.undo();
-//		EXPECT_TRUE(pvector.canUndo());
-//		EXPECT_TRUE(pvector.canRedo());
-//	}
-//
-//
-//
-//	/*
-//	*	Concurrency
-//	*/
-//
+	TEST(PMapUndoRedo, linear) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		constexpr size_t size = (1 << 5);
+		for (size_t i = 0; i < size; ++i) {
+			pmap = pmap.set(i, i);
+		}
+		auto pmap1 = pmap;
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pmap1.size(), size - i);
+			EXPECT_EQ(pmap1[size - i - 1], size - i - 1);
+			EXPECT_THROW(pmap1.at(size - i), out_of_range);
+			pmap1 = pmap1.undo();
+			EXPECT_EQ(pmap1.size(), size - i - 1);
+			EXPECT_THROW(pmap1.at(size - i - 1), out_of_range);
+		}
+		EXPECT_TRUE(pmap1.empty());
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pmap1.size(), i);
+			EXPECT_THROW(pmap1.at(i), out_of_range);
+			pmap1 = pmap1.redo();
+			EXPECT_EQ(pmap1[i], i);
+			EXPECT_EQ(pmap1.size(), i + 1);
+		}
+	}
+
+	TEST(PMapUndoRedo, linearHuge) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		constexpr size_t size = (1 << 10);
+		for (size_t i = 0; i < size; ++i) {
+			pmap = pmap.set(i, i);
+		}
+		auto pmap1 = pmap;
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pmap1.size(), size - i);
+			EXPECT_EQ(pmap1[size - i - 1], size - i - 1);
+			EXPECT_THROW(pmap1.at(size - i), out_of_range);
+			pmap1 = pmap1.undo();
+			EXPECT_EQ(pmap1.size(), size - i - 1);
+			EXPECT_THROW(pmap1.at(size - i - 1), out_of_range);
+		}
+		EXPECT_TRUE(pmap1.empty());
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pmap1.size(), i);
+			EXPECT_THROW(pmap1.at(i), out_of_range);
+			pmap1 = pmap1.redo();
+			EXPECT_EQ(pmap1[i], i);
+			EXPECT_EQ(pmap1.size(), i + 1);
+		}
+	}
+
+	TEST(PMapUndoRedo, linearHugeDestruction) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		constexpr size_t size = (1 << 10);
+		for (size_t i = 0; i < size; ++i) {
+			pmap = pmap.set(i, i);
+		}
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pmap.size(), size - i);
+			EXPECT_EQ(pmap[size - i - 1], size - i - 1);
+			EXPECT_THROW(pmap.at(size - i), out_of_range);
+			pmap = pmap.undo();
+			EXPECT_EQ(pmap.size(), size - i - 1);
+			EXPECT_THROW(pmap.at(size - i - 1), out_of_range);
+		}
+		pmap = pmap.set(0, 0);
+		EXPECT_EQ(pmap[0], 0);
+		EXPECT_THROW(pmap.at(1), out_of_range);
+	}
+
+	TEST(PMapUndoRedo, LinearWithUndoRedo) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		constexpr size_t size = (1 << 5);
+		for (size_t i = 0; i < size; ++i) {
+			pmap = pmap.set(i, i);
+			pmap = pmap.undo();
+			EXPECT_EQ(pmap.size(), i);
+			EXPECT_TRUE(pmap.empty() || pmap[i - 1] == i - 1);
+			pmap = pmap.redo();
+			EXPECT_EQ(pmap.size(), i + 1);
+			EXPECT_EQ(pmap[i], i);
+			EXPECT_THROW(pmap.at(i + 1), out_of_range);
+		}
+	}
+
+	TEST(PMapUndoRedo, NotLinearWithUndoRedo) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		constexpr size_t size = (1 << 10);
+		for (size_t i = 0; i < size; i += 2) {
+			pmap = pmap.set(i, i);
+			pmap = pmap.set(i + 1, i * 2);
+			pmap = pmap.undo();
+			pmap = pmap.set(i + 1, i + 1);
+			pmap = pmap.undo();
+			pmap = pmap.redo();
+			EXPECT_EQ(pmap[i + 1], i + 1);
+			EXPECT_THROW(pmap.at(i + 2), out_of_range);
+		}
+		EXPECT_EQ(pmap.size(), size);
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pmap[i], i);
+		}
+		EXPECT_THROW(pmap.at(size), out_of_range);
+	}
+
+	TEST(PMapUndoRedo, NotLinearWithUndoRedoTwo) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		constexpr size_t size = (1 << 10);
+		for (size_t i = 0; i < size; i += 2) {
+			pmap = pmap.set(i, i);
+			pmap = pmap.set(i + 1, i * 2);
+			pmap = pmap.set(i + 2, i * 3);
+			pmap = pmap.undo();
+			pmap = pmap.undo();
+			pmap = pmap.set(i + 1, i + 1);
+			pmap = pmap.undo();
+			pmap = pmap.redo();
+			EXPECT_EQ(pmap[i + 1], i + 1);
+			EXPECT_THROW(pmap.at(i + 2), out_of_range);
+		}
+		EXPECT_EQ(pmap.size(), size);
+		for (size_t i = 0; i < size; ++i) {
+			EXPECT_EQ(pmap[i], i);
+		}
+		EXPECT_THROW(pmap.at(size), out_of_range);
+	}
+
+	/*
+	*	canUndo & canRedo
+	*/
+
+	TEST(PMapCanUndoRedo, NewCreated) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		EXPECT_FALSE(pmap.canUndo());
+		EXPECT_FALSE(pmap.canRedo());
+	}
+
+	TEST(PMapCanUndoRedo, CanUndoCantRedo) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		pmap = pmap.set(0, 0);
+		EXPECT_TRUE(pmap.canUndo());
+		EXPECT_FALSE(pmap.canRedo());
+	}
+
+	TEST(PMapCanUndoRedo, CantUndoCanRedo) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		pmap = pmap.set(0, 0);
+		pmap = pmap.undo();
+		EXPECT_FALSE(pmap.canUndo());
+		EXPECT_TRUE(pmap.canRedo());
+	}
+
+	TEST(PMapCanUndoRedo, CanUndoCanRedo) {
+		PersistentMap<size_t, size_t, MyHash> pmap;
+		pmap = pmap.set(0, 0).set(0, 1);
+		pmap = pmap.undo();
+		EXPECT_TRUE(pmap.canUndo());
+		EXPECT_TRUE(pmap.canRedo());
+	}
+
+
+
+	/*
+	*	Concurrency
+	*/
+
 //	namespace {
 //		void PushBackFunc(PersistentVector<size_t>& pvector) {
 //			auto id = std::hash<std::thread::id>{}(std::this_thread::get_id());
@@ -782,7 +796,7 @@ namespace {
 //		TEST(PVectorConcurrency, UndoRedo) {
 //			constexpr size_t repeats_number = 100;
 //			constexpr size_t threads_number = 16;
-//			PersistentVector<size_t> pvector;
+//			PersistentMap<size_t, size_t, MyHash> pmap;
 //			pvector = pvector.push_back(1).push_back(2).push_back(3).push_back(4).push_back(5);
 //			std::thread threads[threads_number];
 //			for (size_t repeat = 0; repeat < repeats_number; ++repeat) {
