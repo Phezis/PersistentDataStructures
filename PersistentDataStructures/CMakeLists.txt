@@ -6,6 +6,7 @@ set(SOURCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 set(HEADER_LIB "${HEADER_PATH}/PersistentVector.h"
 				"${HEADER_PATH}/PersistentMap.h"
+				"${HEADER_PATH}/PersistentList.h"
 				"${HEADER_PATH}/Utils.h")
 set(SOURCE_LIB "${SOURCE_PATH}/Utils.cpp")
 
